@@ -1,0 +1,34 @@
+{
+  "name": "optym-code",
+  "description": "Cut Claude Code costs 20-55%. Smart model routing (Sonnet default, Opus only when needed) + terse output compression. Open source.",
+  "author": {
+    "name": "Arturo",
+    "url": "https://github.com/arturoyo"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/optym-activate.js\"",
+            "timeout": 5,
+            "statusMessage": "Loading optym-code..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/optym-mode-tracker.js\"",
+            "timeout": 5,
+            "statusMessage": "optym-code tracking..."
+          }
+        ]
+      }
+    ]
+  }
+}
