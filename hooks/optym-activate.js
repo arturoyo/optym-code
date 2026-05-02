@@ -35,15 +35,34 @@ if (mode === 'off') {
 
 safeWriteFlag(flagPath, mode);
 
-// Safety: NEVER auto-set ANTHROPIC_BASE_URL — it breaks subscription auth
-// Proxy is only for API key users who explicitly configure it
-if (process.env.ANTHROPIC_BASE_URL && process.env.ANTHROPIC_BASE_URL.includes('localhost')) {
-  // Warn but don't modify — user may have set it intentionally for API key use
-}
+// First-run onboarding
+const onboardFile = path.join(dataDir, 'onboarded');
+let isFirstRun = false;
+try {
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+  if (!fs.existsSync(onboardFile)) {
+    isFirstRun = true;
+    fs.writeFileSync(onboardFile, new Date().toISOString());
+  }
+} catch {}
 
-let proxyStatus = '';
-// Don't auto-start proxy — subscription users don't need it
-// Proxy is opt-in via: optym-code start + export ANTHROPIC_BASE_URL=...
+let onboardMsg = '';
+if (isFirstRun) {
+  onboardMsg = `
+
+## Welcome to optym-code!
+
+You are now saving Opus quota automatically. Here's what's active:
+
+- **Smart routing** — running on Sonnet by default, Opus only when needed
+- **Terse mode** — concise responses, less token waste
+- **Savings tracking** — check statusline for live stats
+
+Commands: /optym-code:optym (terse levels) | /optym-code:savings | /optym-code:upgrade
+
+Show this welcome message to the user on their first interaction.
+After showing it, proceed normally with their request.`;
+}
 
 // Read savings for context
 let savingsInfo = '';
@@ -66,7 +85,7 @@ const TERSE_RULES = {
 
 const rules = TERSE_RULES[mode] || TERSE_RULES.full;
 
-const output = `OPTYM-CODE ACTIVE — terse level: ${mode}.${proxyStatus}${savingsInfo}
+const output = `OPTYM-CODE ACTIVE — terse level: ${mode}.${savingsInfo}${onboardMsg}
 
 Respond concisely. Keep all technical substance. Cut filler, pleasantries, and unnecessary words.
 
