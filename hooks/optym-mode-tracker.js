@@ -52,7 +52,7 @@ const OPUS_PATTERNS = [
   /\b(migrate|migration|convert|transform)\b.*\b(from|to|into)\b/i,
 ];
 
-function classifyPrompt(text) {
+function classifyLocal(text) {
   text = (text || '').trim();
 
   let haikuHits = 0;
@@ -68,12 +68,62 @@ function classifyPrompt(text) {
   if (opusHits > 0 || text.length > 2000) return 'opus';
   if (haikuHits > 0 && text.length < 200) return 'haiku';
   if (haikuHits > 0) return 'sonnet';
-  return 'sonnet'; // default: sonnet (save Opus quota)
+  return 'sonnet';
+}
+
+function classifyPro(text) {
+  // Call api.optym.pro/v1/classify for ML classification
+  const proKey = process.env.OPTYM_PRO_KEY;
+  if (!proKey) return null;
+
+  try {
+    const https = require('https');
+    return new Promise((resolve) => {
+      const data = JSON.stringify({
+        prompt: text.slice(0, 4000),
+        provider: 'anthropic',
+      });
+
+      const req = https.request({
+        hostname: 'api.optym.pro',
+        port: 443,
+        path: '/v1/classify',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${proKey}`,
+          'Content-Length': Buffer.byteLength(data),
+        },
+        timeout: 2000,
+      }, (res) => {
+        let body = '';
+        res.on('data', chunk => { body += chunk; });
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(body);
+            resolve(parsed.tier || null);
+          } catch { resolve(null); }
+        });
+      });
+
+      req.on('error', () => resolve(null));
+      req.on('timeout', () => { req.destroy(); resolve(null); });
+      req.write(data);
+      req.end();
+    });
+  } catch { return null; }
+}
+
+async function classifyPrompt(text) {
+  // Try Pro (ML) first, fallback to local (regex)
+  const proResult = await classifyPro(text);
+  if (proResult) return proResult;
+  return classifyLocal(text);
 }
 
 let input = '';
 process.stdin.on('data', chunk => { input += chunk; });
-process.stdin.on('end', () => {
+process.stdin.on('end', async () => {
   try {
     const data = JSON.parse(input);
     const prompt = (data.prompt || '').trim();
@@ -129,7 +179,7 @@ process.stdin.on('end', () => {
     const isConfirmation = /^(si|sí|yes|ok|vale|no|nah|nope)[\s!?.]*$/i.test(prompt);
 
     if (!isCommand && !isTooShort && !isConfirmation) {
-      const tier = classifyPrompt(prompt);
+      const tier = await classifyPrompt(prompt);
 
       // Track routing decision + current model
       try {
