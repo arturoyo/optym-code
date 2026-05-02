@@ -1,6 +1,7 @@
 #!/bin/bash
 # optym-code — statusline for Claude Code
 # Format: S:40% O:20% H:40% ↓80% savings | optym.pro
+# All in blue tones — discrete, professional
 
 COUNTER_FILE="${HOME}/.optym-lite/routing.json"
 
@@ -18,27 +19,26 @@ TOTAL=$((SONNET + OPUS + HAIKU))
 IS_PRO=0
 [ -n "$OPTYM_PRO_KEY" ] && IS_PRO=1
 
+# Blue tones: dark=24, mid=33, light=39, bright=75
 if [ "$TOTAL" -gt 0 ]; then
   S_PCT=$((SONNET * 100 / TOTAL))
   O_PCT=$((OPUS * 100 / TOTAL))
   H_PCT=$((HAIKU * 100 / TOTAL))
   SAVED_PCT=$(( (TOTAL - OPUS) * 100 / TOTAL ))
 
-  # Model distribution: S=blue O=red H=green
-  printf '\033[38;5;75mS:%s%%\033[0m ' "$S_PCT"
-  printf '\033[38;5;196mO:%s%%\033[0m ' "$O_PCT"
-  printf '\033[38;5;82mH:%s%%\033[0m ' "$H_PCT"
+  # Distribution in blue tones (dark → light)
+  printf '\033[38;5;24mS:%s%% O:%s%% H:%s%%\033[0m ' "$S_PCT" "$O_PCT" "$H_PCT"
 
   # Savings + branding
   if [ "$IS_PRO" -eq 1 ]; then
-    printf '\033[38;5;220m↓%s%% savings | OPTYM.PRO\033[0m' "$SAVED_PCT"
+    printf '\033[38;5;75m↓%s%% savings\033[0m \033[38;5;220m| OPTYM.PRO\033[0m' "$SAVED_PCT"
   else
-    printf '\033[38;5;39m↓%s%% savings | optym.pro\033[0m' "$SAVED_PCT"
+    printf '\033[38;5;75m↓%s%% savings\033[0m \033[38;5;33m| optym.pro\033[0m' "$SAVED_PCT"
   fi
 else
   if [ "$IS_PRO" -eq 1 ]; then
     printf '\033[38;5;220mOPTYM.PRO\033[0m'
   else
-    printf '\033[38;5;39moptym.pro\033[0m'
+    printf '\033[38;5;33moptym.pro\033[0m'
   fi
 fi
