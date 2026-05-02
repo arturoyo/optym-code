@@ -11,6 +11,11 @@ const tracker = require('./savings-tracker');
 const { writeStats } = require('./stats-writer');
 const { load: loadConfig } = require('./config');
 
+// Pro classify cache: prompt hash → { tier, model, score, ts }
+const _proCache = new Map();
+const PRO_CACHE_TTL_MS = 60_000;
+const PRO_CLASSIFY_TIMEOUT_MS = 2000;
+
 function extractUserContent(messages) {
   if (!Array.isArray(messages)) return '';
   const lastUser = [...messages].reverse().find(m => m.role === 'user');
@@ -25,10 +30,87 @@ function extractUserContent(messages) {
   return '';
 }
 
+function _simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  return hash.toString(36);
+}
+
+function _proClassify(prompt, proKey, proUpstream) {
+  return new Promise((resolve) => {
+    // Check cache
+    const cacheKey = _simpleHash(prompt);
+    const cached = _proCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < PRO_CACHE_TTL_MS) {
+      resolve(cached.result);
+      return;
+    }
+
+    const url = new URL(proUpstream);
+    const isHttps = url.protocol === 'https:';
+    const transport = isHttps ? https : http;
+
+    const data = JSON.stringify({
+      prompt: prompt.slice(0, 4000), // limit prompt size sent to classify
+      context_length: 0,
+      provider: 'anthropic',
+    });
+
+    const options = {
+      hostname: url.hostname,
+      port: url.port || (isHttps ? 443 : 80),
+      path: '/v1/classify',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${proKey}`,
+        'Content-Length': Buffer.byteLength(data),
+      },
+      timeout: PRO_CLASSIFY_TIMEOUT_MS,
+    };
+
+    const req = transport.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => { body += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          const result = {
+            score: parsed.score || 0.5,
+            tier: parsed.tier || 'mid',
+            model: parsed.model || MODELS.mid.id,
+            signals: ['pro_classify'],
+            proClassified: true,
+          };
+          // Cache result
+          _proCache.set(cacheKey, { result, ts: Date.now() });
+          // Cleanup old entries periodically
+          if (_proCache.size > 1000) {
+            const now = Date.now();
+            for (const [k, v] of _proCache) {
+              if (now - v.ts > PRO_CACHE_TTL_MS) _proCache.delete(k);
+            }
+          }
+          resolve(result);
+        } catch {
+          resolve(null); // fallback to local
+        }
+      });
+    });
+
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.write(data);
+    req.end();
+  });
+}
+
 function startProxy(options = {}) {
   const config = loadConfig();
   const port = options.port ?? config.port;
-  const upstream = options.upstream ?? (config.proMode ? config.proUpstream : config.upstream);
+  const upstream = options.upstream ?? config.upstream; // Always forward to Anthropic directly
   const sessionId = options.sessionId ?? `session-${Date.now()}`;
 
   tracker.init(sessionId);
@@ -51,7 +133,7 @@ function startProxy(options = {}) {
 
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
       if (!isMessagesEndpoint) {
         forwardRequest(req, res, body, upstream, null);
         return;
@@ -72,18 +154,37 @@ function startProxy(options = {}) {
       // Check force-tier header
       const forceTier = req.headers['x-optym-force-tier'];
 
-      // Classify
-      const classification = classify(userContent);
-      let selectedModel;
+      // Classify — Pro (ML cloud) or Free (local regex)
+      let classification;
 
+      if (forceTier) {
+        // Force tier overrides everything
+        classification = { score: 0.5, tier: 'mid', signals: ['forced'] };
+      } else if (config.proMode && config.proKey) {
+        // Pro mode: ask api.optym.pro for ML classification
+        const proResult = await _proClassify(userContent, config.proKey, config.proUpstream);
+        if (proResult) {
+          classification = proResult;
+        } else {
+          // Fallback to local on Pro failure
+          classification = classify(userContent);
+          classification.signals.push('pro_fallback');
+        }
+      } else {
+        // Free mode: local static rules
+        classification = classify(userContent);
+      }
+
+      // Select model
+      let selectedModel;
       if (forceTier) {
         const tierMap = { cheap: 'cheap', haiku: 'cheap', mid: 'mid', sonnet: 'mid', premium: 'premium', opus: 'premium' };
         const tier = tierMap[forceTier.toLowerCase()];
-        if (tier) {
-          selectedModel = MODELS[tier];
-        } else {
-          selectedModel = mapToModel(classification.score);
-        }
+        selectedModel = tier ? MODELS[tier] : mapToModel(classification.score);
+      } else if (classification.proClassified && classification.model) {
+        // Pro mode: use model from cloud classifier
+        const modelEntry = Object.values(MODELS).find(m => m.id === classification.model);
+        selectedModel = modelEntry || mapToModel(classification.score);
       } else {
         selectedModel = mapToModel(classification.score);
       }
@@ -99,7 +200,7 @@ function startProxy(options = {}) {
       parsed.model = selectedModel.id;
       const newBody = JSON.stringify(parsed);
 
-      // Forward
+      // Forward to Anthropic (always direct, never through Optym for LLM calls)
       forwardRequest(req, res, newBody, upstream, (responseBody) => {
         try {
           const respParsed = JSON.parse(responseBody);
