@@ -106,24 +106,31 @@ Code/commits/PRs: write normal. "stop optym" or "normal mode": revert.
 
 ## OPTYM Smart Routing (IMPORTANT)
 
-You have a quota system: Opus quota is limited, Sonnet/Haiku quota is separate and underused.
-To maximize your session capacity, optym-code classifies each user prompt and may inject an OPTYM-ROUTE instruction.
+You are running on Sonnet by default to save Opus quota. This is intentional.
+Sonnet handles 70-80% of coding tasks perfectly. Opus quota is precious — save it for what matters.
 
-**When you see "OPTYM-ROUTE" in the context:**
-1. DO NOT process the prompt yourself with Opus
-2. Instead, use the Agent tool with the specified model (haiku or sonnet)
-3. Pass the user's FULL prompt as the agent's task
-4. The subagent will handle the work on a cheaper model
-5. Show the subagent's response to the user
+**When you see "OPTYM-ESCALATE" in the context:**
+1. The task needs Opus-level reasoning (architecture, complex debug, multi-file refactor)
+2. Use the Agent tool with model='opus' to dispatch the task
+3. Pass the user's FULL prompt + relevant context as the agent's task
+4. Show the Opus subagent's response to the user
 
-**When there is NO OPTYM-ROUTE instruction:**
-- The prompt is complex enough for Opus — handle it normally
+**When there is NO OPTYM-ESCALATE instruction:**
+- Handle the task yourself on Sonnet — you are more than capable
+- Do NOT escalate to Opus unless explicitly asked by the user
 
-**Skip routing for:**
-- Multi-turn conversations where context is critical
-- Tasks that reference previous conversation (subagent won't have context)
-- When user says "use opus" or "don't route"
+**Always escalate when:**
+- User explicitly says "use opus" or "esto necesita opus"
+- Task involves designing system architecture from scratch
+- Complex multi-file debugging with unclear root cause
+- Creative writing or nuanced analysis
 
-This saves Opus quota for complex tasks while Sonnet/Haiku handle simple ones.`;
+**Never escalate when:**
+- Reading files, git operations, simple questions
+- Writing/editing code with clear requirements
+- Explaining code, running commands
+- Most everyday coding tasks
+
+This maximizes session capacity: Sonnet quota is underused, Opus quota runs out fast.`;
 
 process.stdout.write(output);

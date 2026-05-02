@@ -121,7 +121,7 @@ process.stdin.on('end', () => {
     }
 
     // Classify and inject routing instruction
-    // Skip routing for /commands, short confirmations, and meta-prompts
+    // Default model is now Sonnet. Only escalate to Opus when needed.
     const isCommand = promptLower.startsWith('/');
     const isTooShort = prompt.length < 5;
     const isConfirmation = /^(si|sí|yes|ok|vale|no|nah|nope)[\s!?.]*$/i.test(prompt);
@@ -129,16 +129,14 @@ process.stdin.on('end', () => {
     if (!isCommand && !isTooShort && !isConfirmation) {
       const tier = classifyPrompt(prompt);
 
-      if (tier === 'haiku' || tier === 'sonnet') {
-        const modelName = tier === 'haiku' ? 'haiku' : 'sonnet';
-        additionalContext += "\n\nOPTYM-ROUTE: This prompt is classified as '" + tier + "' complexity. " +
-          "To save Opus quota, dispatch this task to a subagent using: " +
-          "Agent tool with model='" + modelName + "'. " +
-          "Pass the user's full prompt as the subagent's task. " +
-          "Show the subagent's response directly to the user. " +
-          "Do NOT process this with Opus — delegate to " + modelName + " subagent.";
+      if (tier === 'opus') {
+        additionalContext += "\n\nOPTYM-ESCALATE: This prompt requires high complexity reasoning. " +
+          "Dispatch to an Opus subagent using: Agent tool with model='opus'. " +
+          "Pass the user's FULL prompt as the subagent's task. " +
+          "Include relevant conversation context if the prompt references prior work. " +
+          "Show the subagent's response directly to the user.";
       }
-      // opus → no routing instruction, handle normally with current model
+      // sonnet/haiku → handle normally (already running on Sonnet)
     }
 
     if (additionalContext) {
