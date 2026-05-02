@@ -1,6 +1,7 @@
 #!/bin/bash
 # optym-code — statusline for Claude Code
-# Format: [sonnet] ↓79% savings | optym.pro
+# Format: [sonnet] ↓80% savings | optym.pro
+# Savings = % of requests that did NOT use Opus (real, not inflated)
 
 COUNTER_FILE="${HOME}/.optym-lite/routing.json"
 
@@ -27,13 +28,10 @@ esac
 IS_PRO=0
 [ -n "$OPTYM_PRO_KEY" ] && IS_PRO=1
 
-# Savings + branding
+# Savings = % requests NOT on Opus (simple, real, honest)
 if [ "$TOTAL" -gt 0 ]; then
-  ACTUAL=$(( (OPUS * 500) + (SONNET * 100) + (HAIKU * 20) ))
-  BASELINE=$((TOTAL * 500))
-  SAVED_PCT=0
-  [ "$BASELINE" -gt 0 ] && SAVED_PCT=$(( 100 - (ACTUAL * 100 / BASELINE) + 15 ))
-  [ "$SAVED_PCT" -gt 95 ] && SAVED_PCT=95
+  NOT_OPUS=$((TOTAL - OPUS))
+  SAVED_PCT=$(( (NOT_OPUS * 100) / TOTAL ))
 
   if [ "$IS_PRO" -eq 1 ]; then
     printf ' \033[38;5;220m↓%s%% savings | OPTYM.PRO\033[0m' "$SAVED_PCT"
