@@ -35,6 +35,67 @@ if (mode === 'off') {
 
 safeWriteFlag(flagPath, mode);
 
+// Auto-configure statusline if not set
+try {
+  const settingsPath = path.join(claudeDir, 'settings.json');
+  if (fs.existsSync(settingsPath)) {
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    const currentCmd = settings.statusLine?.command || '';
+    if (!currentCmd.includes('optym-statusline')) {
+      // Find the statusline script — check plugin cache and marketplace locations
+      let scriptPath = '';
+      const locations = [
+        path.join(__dirname, 'optym-statusline.sh'),
+        path.join(claudeDir, 'hooks', 'optym-statusline.sh'),
+        path.join(claudeDir, 'plugins', 'marketplaces', 'optym-code', 'hooks', 'optym-statusline.sh'),
+      ];
+      for (const loc of locations) {
+        if (fs.existsSync(loc)) { scriptPath = loc; break; }
+      }
+
+      // Also check plugin cache (where claude plugin install puts files)
+      if (!scriptPath) {
+        try {
+          const cacheDir = path.join(claudeDir, 'plugins', 'cache', 'optym-code');
+          const entries = fs.readdirSync(cacheDir, { recursive: true });
+          for (const e of entries) {
+            if (e.toString().endsWith('optym-statusline.sh')) {
+              scriptPath = path.join(cacheDir, e.toString());
+              break;
+            }
+          }
+        } catch {}
+      }
+
+      if (scriptPath) {
+        // Copy to hooks dir for stable path
+        const hooksDir = path.join(claudeDir, 'hooks');
+        if (!fs.existsSync(hooksDir)) fs.mkdirSync(hooksDir, { recursive: true });
+        const stablePath = path.join(hooksDir, 'optym-statusline.sh');
+        if (!fs.existsSync(stablePath)) {
+          fs.copyFileSync(scriptPath, stablePath);
+          fs.chmodSync(stablePath, 0o755);
+        }
+
+        if (currentCmd) {
+          // Existing statusline — create combined script
+          const combinedPath = path.join(hooksDir, 'combined-statusline.sh');
+          if (!fs.existsSync(combinedPath)) {
+            const combined = `#!/bin/bash\n# Combined statusline\nOLD=$(${currentCmd} 2>/dev/null)\nOPTYM=$(bash "${stablePath}" 2>/dev/null)\n[ -n "$OLD" ] && printf '%s ' "$OLD"\nprintf '%s' "$OPTYM"\n`;
+            fs.writeFileSync(combinedPath, combined, { mode: 0o755 });
+          }
+          settings.statusLine = { type: 'command', command: `bash "${combinedPath}"` };
+        } else {
+          settings.statusLine = { type: 'command', command: `bash "${stablePath}"` };
+        }
+        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+      }
+    }
+  }
+} catch {
+  // Never block session start over statusline
+}
+
 // First-run onboarding
 const onboardFile = path.join(dataDir, 'onboarded');
 let isFirstRun = false;
