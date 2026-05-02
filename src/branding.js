@@ -9,7 +9,7 @@ function formatFooter(sessionStats, proMode) {
   if (proMode) {
     return ` optym PRO: savings ${pct}% ($${usd} saved) | optym.pro/dashboard`;
   }
-  return ` optym-lite: savings ${pct}% ($${usd} saved) | optym.pro`;
+  return ` optym-code: savings ${pct}% ($${usd} saved) | optym.pro`;
 }
 
 function shouldShowNudge(totalRequests, nudgeInterval) {

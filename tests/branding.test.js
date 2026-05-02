@@ -6,7 +6,7 @@ describe('branding', () => {
   describe('formatFooter', () => {
     it('formats free mode footer', () => {
       const line = formatFooter({ savingsPct: 23, savingsUsd: 2.10 }, false);
-      assert.ok(line.includes('optym-lite'));
+      assert.ok(line.includes('optym-code'));
       assert.ok(line.includes('23%'));
       assert.ok(line.includes('2.10'));
       assert.ok(line.includes('optym.pro'));

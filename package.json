@@ -1,16 +1,17 @@
 {
-  "name": "optym-lite",
-  "version": "0.1.0",
-  "description": "Open-source local proxy for Anthropic API cost optimization. Routes to Haiku/Sonnet/Opus based on prompt complexity.",
+  "name": "optym-code",
+  "version": "0.2.0",
+  "description": "Save 20-55% on Claude Code costs. Routes to cheapest model + compresses output. Open-source funnel to Optym Pro.",
   "main": "src/proxy.js",
   "bin": {
-    "optym-lite": "./bin/optym-lite.js"
+    "optym-code": "./bin/optym-code.js",
+    "optym-lite": "./bin/optym-code.js"
   },
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "start": "node bin/optym-lite.js start"
+    "start": "node bin/optym-code.js start"
   },
-  "keywords": ["anthropic", "claude", "proxy", "cost-optimization", "llm", "routing"],
+  "keywords": ["anthropic", "claude", "claude-code", "proxy", "cost-optimization", "llm", "routing", "token-savings"],
   "author": "Arturo",
   "license": "MIT",
   "dependencies": {

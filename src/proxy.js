@@ -196,6 +196,15 @@ function startProxy(options = {}) {
         parsed.system = compressed.text;
       }
 
+      // Output compression: inject terse instruction for cheaper tiers
+      if (tier === 'cheap') {
+        const terseInstruction = '\n\n[EFFICIENCY] Respond concisely. Use fragments, drop filler words, skip pleasantries. Lead with the answer. Technical terms exact, code blocks unchanged.';
+        parsed.system = (parsed.system || '') + terseInstruction;
+      } else if (tier === 'mid') {
+        const terseInstruction = '\n\n[EFFICIENCY] Be concise. Skip unnecessary preamble. Lead with the answer.';
+        parsed.system = (parsed.system || '') + terseInstruction;
+      }
+
       // Rewrite model
       parsed.model = selectedModel.id;
       const newBody = JSON.stringify(parsed);
