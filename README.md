@@ -26,11 +26,22 @@ With optym-code:
 
 ## Install
 
-```bash
-claude plugin install arturoyo/optym-code
+Inside Claude Code, type these commands in the prompt:
+
+```
+/plugin marketplace add arturoyo/optym-code
+/plugin install optym-code@optym-code
+/reload-plugins
 ```
 
-Restart Claude Code. Done. No config needed.
+Then in terminal (outside Claude Code):
+
+```bash
+echo 'alias claude="claude --model sonnet"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Restart Claude Code. Done.
 
 Also works with API keys (Aider, Cursor, SDKs) via local proxy — see [API Key Setup](#api-key-setup).
 
