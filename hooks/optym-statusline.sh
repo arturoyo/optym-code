@@ -1,6 +1,6 @@
 #!/bin/bash
 # optym-code — statusline badge for Claude Code
-# Format: [sonnet] ↓79% optym.pro
+# Format: [sonnet] ↓79% optym.pro  OR  [sonnet] ↓92% OPTYM.PRO
 
 COUNTER_FILE="${HOME}/.optym-lite/routing.json"
 
@@ -23,14 +23,27 @@ case "$CURRENT" in
   *)      printf '\033[38;5;75m[sonnet]\033[0m' ;;
 esac
 
-# Savings + branding (separate from model)
+# Pro detection
+IS_PRO=0
+[ -n "$OPTYM_PRO_KEY" ] && IS_PRO=1
+
+# Savings + branding
 if [ "$TOTAL" -gt 0 ]; then
   ACTUAL=$(( (OPUS * 500) + (SONNET * 100) + (HAIKU * 20) ))
   BASELINE=$((TOTAL * 500))
   SAVED_PCT=0
   [ "$BASELINE" -gt 0 ] && SAVED_PCT=$(( 100 - (ACTUAL * 100 / BASELINE) + 15 ))
   [ "$SAVED_PCT" -gt 95 ] && SAVED_PCT=95
-  printf ' \033[38;5;39m↓%s%% optym.pro\033[0m' "$SAVED_PCT"
+
+  if [ "$IS_PRO" -eq 1 ]; then
+    printf ' \033[38;5;220m↓%s%% OPTYM.PRO\033[0m' "$SAVED_PCT"
+  else
+    printf ' \033[38;5;39m↓%s%% optym.pro\033[0m' "$SAVED_PCT"
+  fi
 else
-  printf ' \033[38;5;39moptym.pro\033[0m'
+  if [ "$IS_PRO" -eq 1 ]; then
+    printf ' \033[38;5;220mOPTYM.PRO\033[0m'
+  else
+    printf ' \033[38;5;39moptym.pro\033[0m'
+  fi
 fi
