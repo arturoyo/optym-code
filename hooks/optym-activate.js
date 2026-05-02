@@ -102,6 +102,28 @@ Drop terse for: security warnings, irreversible actions, multi-step where fragme
 
 ## Boundaries
 
-Code/commits/PRs: write normal. "stop optym" or "normal mode": revert.`;
+Code/commits/PRs: write normal. "stop optym" or "normal mode": revert.
+
+## OPTYM Smart Routing (IMPORTANT)
+
+You have a quota system: Opus quota is limited, Sonnet/Haiku quota is separate and underused.
+To maximize your session capacity, optym-code classifies each user prompt and may inject an OPTYM-ROUTE instruction.
+
+**When you see "OPTYM-ROUTE" in the context:**
+1. DO NOT process the prompt yourself with Opus
+2. Instead, use the Agent tool with the specified model (haiku or sonnet)
+3. Pass the user's FULL prompt as the agent's task
+4. The subagent will handle the work on a cheaper model
+5. Show the subagent's response to the user
+
+**When there is NO OPTYM-ROUTE instruction:**
+- The prompt is complex enough for Opus — handle it normally
+
+**Skip routing for:**
+- Multi-turn conversations where context is critical
+- Tasks that reference previous conversation (subagent won't have context)
+- When user says "use opus" or "don't route"
+
+This saves Opus quota for complex tasks while Sonnet/Haiku handle simple ones.`;
 
 process.stdout.write(output);
