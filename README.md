@@ -26,7 +26,7 @@ With optym-code:
 
 ## Install
 
-Inside Claude Code, type these commands in the prompt:
+### Step 1: Register plugin (inside Claude Code)
 
 ```
 /plugin marketplace add arturoyo/optym-code
@@ -34,14 +34,31 @@ Inside Claude Code, type these commands in the prompt:
 /reload-plugins
 ```
 
-Then in terminal (outside Claude Code):
+### Step 2: Complete setup (terminal, outside Claude Code)
 
 ```bash
-echo 'alias claude="claude --model sonnet"' >> ~/.bashrc
-source ~/.bashrc
+cd ~/.claude/plugins/marketplaces/optym-code && bash hooks/install.sh
 ```
 
-Restart Claude Code. Done.
+This single script does everything:
+- Configures statusline (`S:80% O:10% H:10% ↓90% savings | optym.pro`)
+- Wires hooks (terse mode + smart routing)
+- Sets Sonnet as default model (alias in bashrc/zshrc)
+- Creates data directory for tracking
+
+### Step 3: Restart Claude Code
+
+```bash
+claude
+```
+
+Done. Zero manual config.
+
+### Already installed? Update:
+
+```bash
+cd ~/.claude/plugins/marketplaces/optym-code && git pull && bash hooks/install.sh
+```
 
 Also works with API keys (Aider, Cursor, SDKs) via local proxy — see [API Key Setup](#api-key-setup).
 
