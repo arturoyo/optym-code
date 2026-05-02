@@ -11,6 +11,8 @@ const os = require('os');
 
 const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
 const flagPath = path.join(claudeDir, '.optym-active');
+const dataDir = process.env.OPTYM_LITE_DIR || path.join(os.homedir(), '.optym-lite');
+const routingFile = path.join(dataDir, 'routing.json');
 
 function safeWriteFlag(p, content) {
   try { if (fs.lstatSync(p).isSymbolicLink()) return; } catch {}
@@ -128,6 +130,15 @@ process.stdin.on('end', () => {
 
     if (!isCommand && !isTooShort && !isConfirmation) {
       const tier = classifyPrompt(prompt);
+
+      // Track routing decision
+      try {
+        if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+        let routing = { sonnet: 0, opus: 0, haiku: 0 };
+        try { routing = JSON.parse(fs.readFileSync(routingFile, 'utf8')); } catch {}
+        routing[tier] = (routing[tier] || 0) + 1;
+        fs.writeFileSync(routingFile, JSON.stringify(routing, null, 2));
+      } catch {}
 
       if (tier === 'opus') {
         additionalContext += "\n\nOPTYM-ESCALATE: This prompt requires high complexity reasoning. " +
