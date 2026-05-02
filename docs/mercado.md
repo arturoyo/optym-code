@@ -54,3 +54,26 @@ Devs con suscripción Claude Code Max/Pro que queman Opus en tareas simples: **2
 ## Riesgo principal
 
 Anthropic implementa routing automático nativo. Mitigación: si lo hacen, validamos nuestra tesis y pivotamos a multi-provider (Gemini + OpenAI + Claude).
+
+## Expansión multi-plataforma
+
+El problema de "quemar modelo caro en tareas simples" es universal:
+
+| Plataforma | Modelo caro → barato | Esfuerzo adaptación |
+|---|---|---|
+| Gemini CLI | Pro → Flash | Hook similar, cambiar modelo IDs |
+| Codex (OpenAI) | o3 → o4-mini | Proxy + model rewrite |
+| Cursor | Slow → Fast | Extension API diferente |
+| Windsurf | Premium → Standard | Extension API diferente |
+| Aider | Any → cheaper | Proxy ya funciona |
+| Continue.dev | Any → cheaper | Extension adaptable |
+
+**TAM con multi-plataforma: ~15M devs usando AI coding tools.**
+
+A $9/mes, capturar 1% de ese mercado = **$1.35M MRR**.
+
+Prioridad de expansión:
+1. ✅ Claude Code (hecho)
+2. 🔜 Gemini CLI (mismo patrón de hooks)
+3. 🔜 Codex CLI (proxy)
+4. 🔜 Cursor/Windsurf (plugins nativos)
