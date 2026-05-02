@@ -1,87 +1,116 @@
-# optym-lite
+# optym-code
 
-**Save 20-30% on your Anthropic API costs.** Open-source local proxy that routes Claude requests to the cheapest model that can handle the task.
+**Cut your Claude Code bill 20-55%.** Smart model routing + terse output. Zero config.
+
+## Before / After
 
 ```
-You (always Opus) --> $$$$$
-You + optym-lite  --> $$    (Haiku for simple tasks, Sonnet for medium, Opus for complex)
-You + Optym Pro   --> $     (ML routing + cache + healing -> 45-55% savings)
+Without optym-code:
+  Every request → Opus → $$$$$
+  Every response → verbose → more $$$$$
+
+With optym-code:
+  "hello" → Haiku (18x cheaper)
+  "add try-catch" → Sonnet (5x cheaper)
+  "design architecture" → Opus (full power)
+  All responses → concise (65% fewer output tokens)
 ```
 
-## Quick Start
+## Install
+
+### Claude Code Plugin (recommended)
 
 ```bash
-npm install -g optym-lite
-optym-lite start
+claude plugin install arturoyo/optym-code
+```
+
+Done. Proxy auto-starts. Terse mode auto-activates. Savings tracked.
+
+### Standalone (any Anthropic client)
+
+```bash
+npm install -g optym-code
+optym-code start
 export ANTHROPIC_BASE_URL=http://localhost:8088
 ```
 
-That's it. Your Claude Code / SDK / any Anthropic client now routes automatically.
+Works with Claude Code, Aider, Cursor, Anthropic SDKs — anything that talks to Anthropic API.
+
+## What You Get
+
+| Feature | What it does | Savings |
+|---------|-------------|---------|
+| **Smart routing** | Routes to Haiku/Sonnet/Opus by complexity | 20-30% cost |
+| **Terse mode** | Compressed responses, no fluff | ~65% output tokens |
+| **Input compression** | Strips whitespace, comments, collapses imports | 15-25% input tokens |
+| **Savings dashboard** | Track exactly how much you save | Know your ROI |
+| **Statusline badge** | `[OPTYM ↓31%]` in Claude Code | Always visible |
+
+## Commands
+
+In Claude Code:
+
+| Command | What |
+|---------|------|
+| `/optym` | Activate terse mode (default: full) |
+| `/optym lite` | Professional compact — no filler, full sentences |
+| `/optym ultra` | Maximum compression — abbreviations, arrows, fragments |
+| `/savings` | Show savings dashboard |
+| `/force-haiku` | Force all requests to Haiku |
+| `/force-opus` | Force all requests to Opus |
+| `/optym-reset` | Return to auto-routing |
+| `stop optym` | Deactivate terse mode |
+
+CLI:
+
+```bash
+optym-code start              # Start proxy
+optym-code stop               # Stop proxy
+optym-code stats              # Savings dashboard
+optym-code stats --all        # All-time stats
+optym-code config --show      # Show config
+```
 
 ## How It Works
 
-optym-lite sits between your client and Anthropic's API:
-
 ```
-Your Client -> optym-lite (localhost:8088) -> api.anthropic.com
-                  |
-                  +-- Classifies prompt complexity
-                  +-- Routes to Haiku / Sonnet / Opus
-                  +-- Compresses input tokens
-                  +-- Tracks your savings
+Claude Code → optym-code proxy (localhost:8088) → Anthropic API
+                    |
+                    +-- Classifies prompt complexity (regex rules)
+                    +-- Routes to cheapest capable model
+                    +-- Compresses input tokens
+                    +-- Injects terse instructions
+                    +-- Tracks savings in SQLite
 ```
 
 | Prompt type | Routed to | Cost vs Opus |
 |-------------|-----------|-------------|
-| "hello", "git status", "read file" | Haiku | **18x cheaper** |
-| "add error handling", "explain this" | Sonnet | **5x cheaper** |
-| "design architecture", "debug complex issue" | Opus | Full price |
+| Greetings, git ops, file reads | Haiku | **18x cheaper** |
+| Medium coding, explanations | Sonnet | **5x cheaper** |
+| Architecture, complex debug | Opus | Full price |
 
 ## Compatibility
 
-Works with anything that supports Anthropic's base URL:
-
-- **Claude Code** (CLI, VS Code, JetBrains, Desktop)
-- **Anthropic Python/JS SDK**
-- **Aider**, **Cursor** (Claude mode)
-- Any Anthropic API client
-
-## Commands
-
-```bash
-optym-lite start              # Start proxy (localhost:8088)
-optym-lite stop               # Stop proxy
-optym-lite status             # Show status + stats
-optym-lite stats              # Savings dashboard
-optym-lite stats --all        # All-time stats
-optym-lite config --show      # Show config
-optym-lite config --port 9090 # Change port
-optym-lite upgrade            # Open Optym Pro page
-```
-
-## Claude Code Skills
-
-If you use Claude Code, optym-lite includes skills for in-session control:
-
-- `/savings` -- Show savings dashboard
-- `/force-opus` -- Force Opus for all requests
-- `/force-haiku` -- Force Haiku for all requests
-- `/force-sonnet` -- Force Sonnet for all requests
-- `/optym-reset` -- Return to auto-routing
-- `/optym-status` -- Proxy status
+| Client | Works? |
+|--------|--------|
+| Claude Code (CLI, VS Code, JetBrains, Desktop) | Yes |
+| Anthropic Python/JS SDK | Yes |
+| Aider (Claude mode) | Yes |
+| Cursor (Claude mode) | Yes |
+| Any Anthropic API client | Yes |
 
 ## Optym Pro
 
-optym-lite gives you **20-30% savings** with static rules. Want more?
+optym-code free gives **20-30% savings** with static rules.
 
-**[Optym Pro](https://optym.pro)** uses ML classifiers, semantic caching, speculative execution, and self-healing to achieve **45-55% savings**.
-
-Upgrade is a config change -- no reinstall needed:
+**[Optym Pro](https://optym.pro)** upgrades to ML classifiers with **92% routing accuracy** for **45-55% savings**. No reinstall:
 
 ```bash
 export OPTYM_PRO_KEY=optym_your_key
-optym-lite restart
+optym-code start
 ```
+
+Your LLM traffic stays direct to Anthropic. Only the prompt goes to Optym for classification. Zero trust issues.
 
 ## License
 
