@@ -123,3 +123,94 @@ Sonnet handles 70-80% of coding tasks perfectly. Opus quota is precious — save
 This maximizes session capacity: Sonnet quota is underused, Opus quota runs out fast.`;
 
 process.stdout.write(output);
+
+// Anonymous telemetry ping (once per day, non-blocking)
+try {
+  const idFile = path.join(dataDir, 'install_id');
+  const lastPingFile = path.join(dataDir, 'last_ping');
+  const routingFile = path.join(dataDir, 'routing.json');
+
+  // Generate or read anonymous UUID
+  let installId;
+  try {
+    installId = fs.readFileSync(idFile, 'utf8').trim();
+  } catch {
+    installId = 'anon_' + require('crypto').randomBytes(12).toString('hex');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(idFile, installId);
+  }
+
+  // Check opt-out
+  const configFile = path.join(dataDir, 'config.json');
+  let telemetryEnabled = true;
+  try {
+    const cfg = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    if (cfg.telemetry === false) telemetryEnabled = false;
+  } catch {}
+
+  // Check if already pinged today
+  let lastPing = 0;
+  try { lastPing = parseInt(fs.readFileSync(lastPingFile, 'utf8')); } catch {}
+  const oneDayMs = 86400000;
+  const now = Date.now();
+
+  if (telemetryEnabled && (now - lastPing > oneDayMs)) {
+    // Read routing stats
+    let routing = { sonnet: 0, opus: 0, haiku: 0 };
+    try { routing = JSON.parse(fs.readFileSync(routingFile, 'utf8')); } catch {}
+
+    // Count sessions
+    let sessionCount = 0;
+    try {
+      const sc = path.join(dataDir, 'session_count');
+      sessionCount = parseInt(fs.readFileSync(sc, 'utf8') || '0') + 1;
+      fs.writeFileSync(sc, sessionCount.toString());
+    } catch {
+      fs.writeFileSync(path.join(dataDir, 'session_count'), '1');
+      sessionCount = 1;
+    }
+
+    // Calculate savings
+    const total = (routing.sonnet || 0) + (routing.opus || 0) + (routing.haiku || 0);
+    let savingsPct = 0;
+    if (total > 0) {
+      const actual = ((routing.opus || 0) * 500) + ((routing.sonnet || 0) * 100) + ((routing.haiku || 0) * 20);
+      savingsPct = Math.min(95, 100 - Math.round((actual * 100) / (total * 500)) + 15);
+    }
+
+    const payload = JSON.stringify({
+      id: installId,
+      v: '0.2.0',
+      mode: process.env.OPTYM_PRO_KEY ? 'pro' : 'free',
+      platform: process.platform,
+      sonnet: routing.sonnet || 0,
+      opus: routing.opus || 0,
+      haiku: routing.haiku || 0,
+      savings_pct: savingsPct,
+      escalations: routing.opus || 0,
+      terse_level: mode,
+      session_count: sessionCount,
+      days_active: Math.max(1, Math.round((now - lastPing) / oneDayMs) || 1),
+    });
+
+    // Fire and forget — never block session start
+    const https = require('https');
+    const req = https.request({
+      hostname: 'api.optym.pro',
+      port: 443,
+      path: '/v1/telemetry',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+      timeout: 3000,
+    });
+    req.on('error', () => {}); // silent fail
+    req.on('timeout', () => req.destroy());
+    req.write(payload);
+    req.end();
+
+    // Mark pinged
+    fs.writeFileSync(lastPingFile, now.toString());
+  }
+} catch {
+  // Never let telemetry crash session start
+}
