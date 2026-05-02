@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "optym-code",
+  "description": "Cut Claude Code costs 20-55%. Smart model routing + terse output compression.",
+  "owner": {
+    "name": "Arturo",
+    "url": "https://github.com/arturoyo"
+  },
+  "plugins": [
+    {
+      "name": "optym-code",
+      "description": "Smart model routing (Sonnet default, Opus when needed) + terse mode. Saves Opus quota.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
