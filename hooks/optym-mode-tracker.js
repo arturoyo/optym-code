@@ -131,12 +131,13 @@ process.stdin.on('end', () => {
     if (!isCommand && !isTooShort && !isConfirmation) {
       const tier = classifyPrompt(prompt);
 
-      // Track routing decision
+      // Track routing decision + current model
       try {
         if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-        let routing = { sonnet: 0, opus: 0, haiku: 0 };
+        let routing = { sonnet: 0, opus: 0, haiku: 0, current: 'sonnet' };
         try { routing = JSON.parse(fs.readFileSync(routingFile, 'utf8')); } catch {}
         routing[tier] = (routing[tier] || 0) + 1;
+        routing.current = tier;
         fs.writeFileSync(routingFile, JSON.stringify(routing, null, 2));
       } catch {}
 
