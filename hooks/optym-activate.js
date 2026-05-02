@@ -35,26 +35,15 @@ if (mode === 'off') {
 
 safeWriteFlag(flagPath, mode);
 
-// Auto-start proxy if not running
-const pidFile = path.join(dataDir, 'proxy.pid');
-let proxyRunning = false;
-try {
-  if (fs.existsSync(pidFile)) {
-    const pid = parseInt(fs.readFileSync(pidFile, 'utf8'));
-    process.kill(pid, 0); // test if alive
-    proxyRunning = true;
-  }
-} catch {}
+// Safety: NEVER auto-set ANTHROPIC_BASE_URL — it breaks subscription auth
+// Proxy is only for API key users who explicitly configure it
+if (process.env.ANTHROPIC_BASE_URL && process.env.ANTHROPIC_BASE_URL.includes('localhost')) {
+  // Warn but don't modify — user may have set it intentionally for API key use
+}
 
 let proxyStatus = '';
-if (!proxyRunning) {
-  try {
-    execSync('optym-code start &', { stdio: 'ignore', timeout: 5000 });
-    proxyStatus = ' Proxy auto-started on :8088.';
-  } catch {
-    proxyStatus = ' Proxy not running — start with: optym-code start';
-  }
-}
+// Don't auto-start proxy — subscription users don't need it
+// Proxy is opt-in via: optym-code start + export ANTHROPIC_BASE_URL=...
 
 // Read savings for context
 let savingsInfo = '';
