@@ -1,6 +1,6 @@
 #!/bin/bash
-# optym-code — statusline badge for Claude Code
-# Format: [sonnet] ↓79% optym.pro  OR  [sonnet] ↓92% OPTYM.PRO
+# optym-code — statusline for Claude Code
+# Format: [sonnet] ↓79% savings | optym.pro
 
 COUNTER_FILE="${HOME}/.optym-lite/routing.json"
 
@@ -36,9 +36,9 @@ if [ "$TOTAL" -gt 0 ]; then
   [ "$SAVED_PCT" -gt 95 ] && SAVED_PCT=95
 
   if [ "$IS_PRO" -eq 1 ]; then
-    printf ' \033[38;5;220m↓%s%% OPTYM.PRO\033[0m' "$SAVED_PCT"
+    printf ' \033[38;5;220m↓%s%% savings | OPTYM.PRO\033[0m' "$SAVED_PCT"
   else
-    printf ' \033[38;5;39m↓%s%% optym.pro\033[0m' "$SAVED_PCT"
+    printf ' \033[38;5;39m↓%s%% savings | optym.pro\033[0m' "$SAVED_PCT"
   fi
 else
   if [ "$IS_PRO" -eq 1 ]; then
