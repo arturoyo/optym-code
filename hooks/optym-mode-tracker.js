@@ -201,6 +201,45 @@ process.stdin.on('end', async () => {
       // sonnet/haiku → handle normally (already running on Sonnet)
     }
 
+    // ── Capture nudge responses ──
+    const nudgeResponseMatch = /^[1-5]$/.test(prompt.trim()) || /^[a-d]$/i.test(prompt.trim());
+    if (nudgeResponseMatch) {
+      const response = prompt.trim();
+      const isSatisfaction = /^[1-5]$/.test(response);
+      const type = isSatisfaction ? 'satisfaction' : 'feedback';
+
+      // Read install ID
+      let installId = 'unknown';
+      try { installId = fs.readFileSync(path.join(dataDir, 'install_id'), 'utf8').trim(); } catch {}
+
+      // Send to telemetry (fire and forget)
+      try {
+        const https = require('https');
+        const payload = JSON.stringify({
+          id: installId,
+          v: '0.2.0',
+          mode: process.env.OPTYM_PRO_KEY ? 'pro' : 'free',
+          platform: process.platform,
+          sonnet: 0, opus: 0, haiku: 0,
+          savings_pct: 0,
+          escalations: 0,
+          terse_level: type + ':' + response,
+          session_count: 0,
+          days_active: 0,
+        });
+        const req = https.request({
+          hostname: 'api.optym.pro', port: 443,
+          path: '/v1/telemetry', method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+          timeout: 3000,
+        });
+        req.on('error', () => {});
+        req.on('timeout', () => req.destroy());
+        req.write(payload);
+        req.end();
+      } catch {}
+    }
+
     // ── Nudge engine ──
     // Read + increment request counter
     const counterFile = path.join(dataDir, 'request_count');
