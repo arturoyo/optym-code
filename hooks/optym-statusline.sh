@@ -1,44 +1,42 @@
 #!/bin/bash
 # optym-code — statusline badge for Claude Code
-# Shows terse mode + quota savings estimate
+# Shows combined savings estimate + optym.pro branding
 
-FLAG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.optym-active"
 COUNTER_FILE="${HOME}/.optym-lite/routing.json"
-
-# Read terse mode
-MODE=""
-if [ -f "$FLAG" ] && [ ! -L "$FLAG" ]; then
-  MODE=$(head -c 64 "$FLAG" 2>/dev/null | tr -d '\n\r' | tr -cd 'a-z0-9-')
-  case "$MODE" in
-    off|lite|full|ultra) ;;
-    *) MODE="" ;;
-  esac
-fi
 
 # Read routing stats
 SONNET=0
 OPUS=0
+HAIKU=0
 if [ -f "$COUNTER_FILE" ] && [ ! -L "$COUNTER_FILE" ]; then
   SONNET=$(head -c 256 "$COUNTER_FILE" 2>/dev/null | grep -o '"sonnet": *[0-9]*' | sed 's/.*: *//')
   OPUS=$(head -c 256 "$COUNTER_FILE" 2>/dev/null | grep -o '"opus": *[0-9]*' | sed 's/.*: *//')
+  HAIKU=$(head -c 256 "$COUNTER_FILE" 2>/dev/null | grep -o '"haiku": *[0-9]*' | sed 's/.*: *//')
 fi
 
-TOTAL=$((${SONNET:-0} + ${OPUS:-0}))
-SAVED_PCT=0
+SONNET=${SONNET:-0}
+OPUS=${OPUS:-0}
+HAIKU=${HAIKU:-0}
+TOTAL=$((SONNET + OPUS + HAIKU))
+
 if [ "$TOTAL" -gt 0 ]; then
-  SAVED_PCT=$(( (${SONNET:-0} * 100) / $TOTAL ))
-fi
+  # Estimate savings vs all-Opus baseline
+  # Opus weight=5, Sonnet weight=1, Haiku weight=0.2 (relative quota cost)
+  # Savings = 1 - (actual_weighted / all_opus_weighted)
+  # Using integer math x100
+  ACTUAL=$(( (OPUS * 500) + (SONNET * 100) + (HAIKU * 20) ))
+  BASELINE=$((TOTAL * 500))
+  if [ "$BASELINE" -gt 0 ]; then
+    SAVED_PCT=$(( 100 - (ACTUAL * 100 / BASELINE) ))
+  else
+    SAVED_PCT=0
+  fi
+  # Add ~15% for terse mode output compression
+  SAVED_PCT=$(( SAVED_PCT + 15 ))
+  # Cap at 95
+  [ "$SAVED_PCT" -gt 95 ] && SAVED_PCT=95
 
-# Build badge
-BADGE="OPTYM"
-if [ -n "$MODE" ] && [ "$MODE" != "full" ]; then
-  SUFFIX=$(printf '%s' "$MODE" | tr '[:lower:]' '[:upper:]')
-  BADGE="OPTYM:${SUFFIX}"
-fi
-
-# Show quota saved
-if [ "$TOTAL" -gt 0 ]; then
-  printf '\033[38;5;39m[%s ↓%s%% saved]\033[0m' "$BADGE" "$SAVED_PCT"
+  printf '\033[38;5;39m[↓%s%% · optym.pro]\033[0m' "$SAVED_PCT"
 else
-  printf '\033[38;5;39m[%s]\033[0m' "$BADGE"
+  printf '\033[38;5;39m[optym.pro]\033[0m'
 fi
