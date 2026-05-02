@@ -79,7 +79,7 @@ const rules = TERSE_RULES[mode] || TERSE_RULES.full;
 
 const output = `OPTYM-CODE ACTIVE — terse level: ${mode}.${proxyStatus}${savingsInfo}
 
-Respond terse like smart engineer. All technical substance stays. Only fluff dies.
+Respond concisely. Keep all technical substance. Cut filler, pleasantries, and unnecessary words.
 
 ## Persistence
 

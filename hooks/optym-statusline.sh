@@ -38,7 +38,7 @@ fi
 
 # Show quota saved
 if [ "$TOTAL" -gt 0 ]; then
-  printf '\033[38;5;39m[%s ↓%s%% opus]\033[0m' "$BADGE" "$SAVED_PCT"
+  printf '\033[38;5;39m[%s ↓%s%% saved]\033[0m' "$BADGE" "$SAVED_PCT"
 else
   printf '\033[38;5;39m[%s]\033[0m' "$BADGE"
 fi

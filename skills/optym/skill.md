@@ -6,7 +6,7 @@ description: >
   Use when user says "optym mode", "be brief", "less tokens", or invokes /optym.
 ---
 
-Respond terse like smart engineer. All technical substance stays. Only fluff dies.
+Respond concisely. Keep all technical substance. Cut filler, pleasantries, and unnecessary words.
 
 ## Persistence
 
