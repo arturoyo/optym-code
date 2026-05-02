@@ -26,7 +26,17 @@ With optym-code:
 
 ## Install
 
-### Step 1: Register plugin (inside Claude Code)
+### One command (recommended)
+
+```bash
+curl -s https://raw.githubusercontent.com/arturoyo/optym-code/master/install.sh | bash
+```
+
+Restart Claude Code. Done.
+
+### Manual install
+
+#### Step 1: Register plugin (inside Claude Code)
 
 ```
 /plugin marketplace add arturoyo/optym-code
