@@ -1,9 +1,9 @@
 #!/bin/bash
 # optym-code — statusline badge for Claude Code
-# Shows terse mode + savings % from proxy
+# Shows terse mode + quota savings estimate
 
 FLAG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.optym-active"
-STATS_FILE="${HOME}/.optym-lite/stats.json"
+COUNTER_FILE="${HOME}/.optym-lite/routing.json"
 
 # Read terse mode
 MODE=""
@@ -15,24 +15,30 @@ if [ -f "$FLAG" ] && [ ! -L "$FLAG" ]; then
   esac
 fi
 
-# Read savings
-SAVINGS_PCT=""
-if [ -f "$STATS_FILE" ] && [ ! -L "$STATS_FILE" ]; then
-  SAVINGS_PCT=$(head -c 512 "$STATS_FILE" 2>/dev/null | grep -o '"savings_pct": *[0-9.]*' | head -1 | sed 's/.*: *//')
+# Read routing stats
+SONNET=0
+OPUS=0
+if [ -f "$COUNTER_FILE" ] && [ ! -L "$COUNTER_FILE" ]; then
+  SONNET=$(head -c 256 "$COUNTER_FILE" 2>/dev/null | grep -o '"sonnet": *[0-9]*' | sed 's/.*: *//')
+  OPUS=$(head -c 256 "$COUNTER_FILE" 2>/dev/null | grep -o '"opus": *[0-9]*' | sed 's/.*: *//')
+fi
+
+TOTAL=$((${SONNET:-0} + ${OPUS:-0}))
+SAVED_PCT=0
+if [ "$TOTAL" -gt 0 ]; then
+  SAVED_PCT=$(( (${SONNET:-0} * 100) / $TOTAL ))
 fi
 
 # Build badge
 BADGE="OPTYM"
-
-# Add mode suffix if not default full
 if [ -n "$MODE" ] && [ "$MODE" != "full" ]; then
   SUFFIX=$(printf '%s' "$MODE" | tr '[:lower:]' '[:upper:]')
   BADGE="OPTYM:${SUFFIX}"
 fi
 
-# Add savings
-if [ -n "$SAVINGS_PCT" ] && [ "$SAVINGS_PCT" != "0" ]; then
-  printf '\033[38;5;39m[%s ↓%s%%]\033[0m' "$BADGE" "$SAVINGS_PCT"
+# Show quota saved
+if [ "$TOTAL" -gt 0 ]; then
+  printf '\033[38;5;39m[%s ↓%s%% opus]\033[0m' "$BADGE" "$SAVED_PCT"
 else
   printf '\033[38;5;39m[%s]\033[0m' "$BADGE"
 fi
