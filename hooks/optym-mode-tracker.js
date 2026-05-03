@@ -191,6 +191,11 @@ process.stdin.on('end', async () => {
         fs.writeFileSync(routingFile, JSON.stringify(routing, null, 2));
       } catch {}
 
+      // Model badge — show which AI is responding
+      const TIER_BADGE = { haiku: '🟢 Haiku', sonnet: '🟡 Sonnet', opus: '🔴 Opus' };
+      const badge = TIER_BADGE[tier] || '🟡 Sonnet';
+      additionalContext += `\n\nMODEL-BADGE: Start your response with "${badge} |" followed by your answer on the same line. No separate line for the badge.`;
+
       if (tier === 'opus') {
         additionalContext += "\n\nOPTYM-ESCALATE: This prompt requires high complexity reasoning. " +
           "Dispatch to an Opus subagent using: Agent tool with model='opus'. " +
