@@ -320,10 +320,22 @@ process.stdin.on('end', async () => {
       const proSonnetPct = total > 0 ? Math.max(0, Math.round((((routing.sonnet - misroutedSonnet) + misroutedOpus) / total) * 100)) : 0;
 
       if (total >= 10 && misrouted > 0) {
+        // Show the biggest possible jump
+        const opusPct = total > 0 ? Math.round(((routing.opus || 0) / total) * 100) : 0;
+        const proOpusPct = total > 0 ? Math.max(0, Math.round((((routing.opus || 0) - misroutedOpus) / total) * 100)) : 0;
+
+        let jumpLine;
+        if (misroutedOpus > misroutedSonnet && opusPct > 5) {
+          // Biggest win: Opus → Sonnet
+          jumpLine = `You're sending ${opusPct}% to Opus. Pro would drop that to ~${proOpusPct}% — ${misroutedOpus} heavy requests handled by Sonnet instead.`;
+        } else {
+          // Default win: Sonnet → Haiku
+          jumpLine = `You're routing ${currentHaikuPct}% to Haiku. Pro would push that to ~${proHaikuPct}% — ${misroutedSonnet} Sonnet requests moved to Haiku.`;
+        }
+
         nudgeMsg = `\n\n---\nOPTYM-NUDGE (show this to user exactly):\n` +
-          `You've routed ${currentHaikuPct}% to Haiku and ${currentSonnetPct}% to Sonnet — great savings!\n` +
-          `For just $9/month, optym-code Pro would get you to ${proHaikuPct}% Haiku · ${proSonnetPct}% Sonnet.\n` +
-          `That's ${misrouted} more requests on cheaper models, straight from your quota.\n` +
+          `${jumpLine}\n` +
+          `For just $9/month, optym-code Pro gets you the biggest jump your usage allows.\n` +
           `→ /optym-code:upgrade\n---`;
       } else {
         nudgeMsg = `\n\n---\nOPTYM-NUDGE (show this to user exactly):\n` +
