@@ -304,19 +304,32 @@ process.stdin.on('end', async () => {
     // 3. Upgrade nudge — every 30 requests (free only)
     else if (!getProKey() && reqCount - nudgeState.lastUpgrade >= 30) {
       nudgeState.lastUpgrade = reqCount;
-      const routing = { sonnet: 0, opus: 0 };
+      const routing = { sonnet: 0, opus: 0, haiku: 0 };
       try { Object.assign(routing, JSON.parse(fs.readFileSync(routingFile, 'utf8'))); } catch {}
       const total = (routing.sonnet || 0) + (routing.opus || 0) + (routing.haiku || 0);
-      let savedPct = 0;
-      if (total > 0) {
-        const actual = ((routing.opus || 0) * 500) + ((routing.sonnet || 0) * 100) + ((routing.haiku || 0) * 20);
-        savedPct = Math.min(95, 100 - Math.round((actual * 100) / (total * 500)) + 15);
+
+      // Free accuracy ~70% → ~30% of sonnet could have been haiku, ~25% of opus could have been sonnet
+      const misroutedSonnet = Math.round((routing.sonnet || 0) * 0.30);
+      const misroutedOpus = Math.round((routing.opus || 0) * 0.25);
+      const misrouted = misroutedSonnet + misroutedOpus;
+
+      // Current haiku% vs what Pro would achieve
+      const currentHaikuPct = total > 0 ? Math.round(((routing.haiku || 0) / total) * 100) : 0;
+      const proHaikuPct = total > 0 ? Math.min(95, Math.round(((routing.haiku + misroutedSonnet) / total) * 100)) : 0;
+      const currentSonnetPct = total > 0 ? Math.round(((routing.sonnet || 0) / total) * 100) : 0;
+      const proSonnetPct = total > 0 ? Math.max(0, Math.round((((routing.sonnet - misroutedSonnet) + misroutedOpus) / total) * 100)) : 0;
+
+      if (total >= 10 && misrouted > 0) {
+        nudgeMsg = `\n\n---\nOPTYM-NUDGE (show this to user exactly):\n` +
+          `optym-code free: ${currentHaikuPct}% Haiku · ${currentSonnetPct}% Sonnet\n` +
+          `optym-code Pro:  ${proHaikuPct}% Haiku · ${proSonnetPct}% Sonnet  (+${misrouted} requests optimized)\n` +
+          `Pro uses ML routing (92% accuracy) to shift more requests to cheaper models.\n` +
+          `$9/month → /optym-code:upgrade\n---`;
+      } else {
+        nudgeMsg = `\n\n---\nOPTYM-NUDGE (show this to user exactly):\n` +
+          `Enjoying optym-code? Pro uses ML routing (92% accuracy) for deeper savings.\n` +
+          `$9/month → /optym-code:upgrade\n---`;
       }
-      const proPct = Math.min(95, savedPct + 20);
-      nudgeMsg = `\n\n---\nOPTYM-NUDGE (show this to user exactly):\n` +
-        `You've saved ~${savedPct}% with optym-code free.\n` +
-        `Optym Pro could save ~${proPct}% with ML routing (92% accuracy).\n` +
-        `$9/month → /optym-code:upgrade or visit optym.pro\n---`;
     }
     // 4. Feedback — every 100 requests
     else if (reqCount - nudgeState.lastFeedback >= 100) {
