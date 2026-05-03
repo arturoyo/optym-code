@@ -115,6 +115,8 @@ function classifyPro(text) {
 }
 
 async function classifyPrompt(text) {
+  // Short prompts (<20 chars): local classifier is more reliable than ML
+  if (text.length < 20) return classifyLocal(text);
   // Try Pro (ML) first, fallback to local (regex)
   const proResult = await classifyPro(text);
   if (proResult) return proResult;
