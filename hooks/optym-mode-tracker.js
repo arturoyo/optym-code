@@ -34,7 +34,7 @@ function readFlag(p) {
 
 // Lightweight classifier (same logic as proxy classifier)
 const HAIKU_PATTERNS = [
-  /^(hi|hello|hey|yes|no|ok|okay|thanks|thank you|gracias|sí|vale|sure|yep|nope)[\s!?.]*$/i,
+  /^(hi|hello|hey|hola|buenas|buenos días|buenas tardes|buenas noches|yes|no|ok|okay|thanks|thank you|gracias|sí|si|vale|sure|yep|nope|perfecto|genial|bien|venga|dale)[\s!?.]*$/i,
   /^(what|where|when|who|how many|how much|qué|dónde|cuándo|quién)\b/i,
   /\b(git status|git log|git diff|git branch|commit message|git show)\b/i,
   /\b(read|show|cat|print|display|muestra|lee|list)\s+(the\s+)?(file|content|code|output)/i,
@@ -76,6 +76,9 @@ function classifyPro(text) {
   const proKey = process.env.OPTYM_PRO_KEY;
   if (!proKey) return null;
 
+  // Normalize gateway tier names (cheap/mid/premium) to hook tier names (haiku/sonnet/opus)
+  const TIER_NORMALIZE = { cheap: 'haiku', mid: 'sonnet', premium: 'opus' };
+
   try {
     const https = require('https');
     return new Promise((resolve) => {
@@ -101,7 +104,8 @@ function classifyPro(text) {
         res.on('end', () => {
           try {
             const parsed = JSON.parse(body);
-            resolve(parsed.tier || null);
+            const raw = parsed.tier || null;
+            resolve(raw ? (TIER_NORMALIZE[raw] || raw) : null);
           } catch { resolve(null); }
         });
       });
@@ -177,7 +181,7 @@ process.stdin.on('end', async () => {
     // Classify and inject routing instruction
     // Default model is now Sonnet. Only escalate to Opus when needed.
     const isCommand = promptLower.startsWith('/');
-    const isTooShort = prompt.length < 5;
+    const isTooShort = prompt.length < 2;
     const isConfirmation = /^(si|sí|yes|ok|vale|no|nah|nope)[\s!?.]*$/i.test(prompt);
 
     if (!isCommand && !isTooShort && !isConfirmation) {
