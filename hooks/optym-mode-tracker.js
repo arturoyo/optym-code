@@ -73,7 +73,7 @@ function classifyLocal(text) {
 
 function classifyPro(text) {
   // Call api.optym.pro/v1/classify for ML classification
-  const proKey = process.env.OPTYM_PRO_KEY;
+  const proKey = getProKey();
   if (!proKey) return null;
 
   // Normalize gateway tier names (cheap/mid/premium) to hook tier names (haiku/sonnet/opus)
@@ -125,6 +125,13 @@ async function classifyPrompt(text) {
   const proResult = await classifyPro(text);
   if (proResult) return proResult;
   return classifyLocal(text);
+}
+
+// Resolve Pro key from env or file (works in non-interactive shells / Claude Code hooks)
+function getProKey() {
+  if (process.env.OPTYM_PRO_KEY) return process.env.OPTYM_PRO_KEY;
+  try { return fs.readFileSync(path.join(dataDir, 'pro.key'), 'utf8').trim(); } catch {}
+  return null;
 }
 
 let input = '';
@@ -229,7 +236,7 @@ process.stdin.on('end', async () => {
         const payload = JSON.stringify({
           id: installId,
           v: '0.2.0',
-          mode: process.env.OPTYM_PRO_KEY ? 'pro' : 'free',
+          mode: getProKey() ? 'pro' : 'free',
           platform: process.platform,
           sonnet: 0, opus: 0, haiku: 0,
           savings_pct: 0,
@@ -295,7 +302,7 @@ process.stdin.on('end', async () => {
         `Every star helps the project grow.\n---`;
     }
     // 3. Upgrade nudge — every 30 requests (free only)
-    else if (!process.env.OPTYM_PRO_KEY && reqCount - nudgeState.lastUpgrade >= 30) {
+    else if (!getProKey() && reqCount - nudgeState.lastUpgrade >= 30) {
       nudgeState.lastUpgrade = reqCount;
       const routing = { sonnet: 0, opus: 0 };
       try { Object.assign(routing, JSON.parse(fs.readFileSync(routingFile, 'utf8'))); } catch {}
