@@ -321,15 +321,14 @@ process.stdin.on('end', async () => {
 
       if (total >= 10 && misrouted > 0) {
         nudgeMsg = `\n\n---\nOPTYM-NUDGE (show this to user exactly):\n` +
-          `For just $9/month, optym-code Pro would give you:\n` +
-          `  · ${proHaikuPct}% Haiku · ${proSonnetPct}% Sonnet  (vs ${currentHaikuPct}% · ${currentSonnetPct}% now)\n` +
-          `  · ${misrouted} more requests routed to cheaper models\n` +
-          `  · ML routing at 92% accuracy (vs 70% free)\n` +
+          `You've routed ${currentHaikuPct}% to Haiku and ${currentSonnetPct}% to Sonnet — great savings!\n` +
+          `For just $9/month, optym-code Pro would get you to ${proHaikuPct}% Haiku · ${proSonnetPct}% Sonnet.\n` +
+          `That's ${misrouted} more requests on cheaper models, straight from your quota.\n` +
           `→ /optym-code:upgrade\n---`;
       } else {
         nudgeMsg = `\n\n---\nOPTYM-NUDGE (show this to user exactly):\n` +
-          `For just $9/month, optym-code Pro gives you ML routing at 92% accuracy.\n` +
-          `More requests to Haiku. Less Sonnet/Opus quota used.\n` +
+          `Great savings so far! For just $9/month, optym-code Pro routes even more requests to Haiku.\n` +
+          `Less Sonnet quota used, automatically.\n` +
           `→ /optym-code:upgrade\n---`;
       }
     }
