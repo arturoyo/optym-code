@@ -287,7 +287,7 @@ process.stdin.on('end', async () => {
         const actual = ((routing.opus || 0) * 500) + ((routing.sonnet || 0) * 100) + ((routing.haiku || 0) * 20);
         savedPct = Math.min(95, 100 - Math.round((actual * 100) / (total * 500)) + 15);
       }
-      nudgeMsg = `\n\n> **⚡ optym-code** — ${reqCount} requests routed\n` +
+      nudgeMsg = `\n\n> 💬 **optym-code** — ${reqCount} requests routed\n` +
         `> How satisfied are you? Reply with a number:\n` +
         `> 1 - Not useful  2 - Somewhat  3 - Good  4 - Great  5 - Love it!\n` +
         `> *(just type the number, or ignore)*`;
@@ -295,8 +295,8 @@ process.stdin.on('end', async () => {
     // 2. GitHub stars — every 200 requests
     else if (reqCount - nudgeState.lastStars >= 200) {
       nudgeState.lastStars = reqCount;
-      nudgeMsg = `\n\n> **⚡ optym-code** — enjoying it? Help others discover it!\n` +
-        `> ⭐ Star us on GitHub: https://github.com/arturoyo/optym-code`;
+      nudgeMsg = `\n\n> ⭐ **optym-code** — enjoying it? Help others discover it!\n` +
+        `> Star us on GitHub: https://github.com/arturoyo/optym-code`;
     }
     // 3. Upgrade nudge — every 30 requests (free only)
     else if (!getProKey() && reqCount - nudgeState.lastUpgrade >= 30) {
@@ -321,18 +321,18 @@ process.stdin.on('end', async () => {
         } else {
           jumpLine = `You're routing **${currentHaikuPct}%** to Haiku → Pro would push it to **~${proHaikuPct}%** (${misroutedSonnet} Sonnet calls saved)`;
         }
-        nudgeMsg = `\n\n> **⚡ optym-code Pro** — for just $9/month:\n` +
+        nudgeMsg = `\n\n> 🔥 **OPTYM PRO** — for just $9/month:\n` +
           `> ${jumpLine}\n` +
           `> → \`/optym-code:upgrade\``;
       } else {
-        nudgeMsg = `\n\n> **⚡ optym-code Pro** — for just $9/month, route more requests to Haiku automatically.\n` +
+        nudgeMsg = `\n\n> 🔥 **OPTYM PRO** — for just $9/month, route more requests to Haiku automatically.\n` +
           `> → \`/optym-code:upgrade\``;
       }
     }
     // 4. Feedback — every 100 requests
     else if (reqCount - nudgeState.lastFeedback >= 100) {
       nudgeState.lastFeedback = reqCount;
-      nudgeMsg = `\n\n> **⚡ optym-code** — quick feedback: what matters most?\n` +
+      nudgeMsg = `\n\n> 💬 **optym-code** — quick feedback: what matters most?\n` +
         `> a) More savings  b) Better accuracy  c) Faster responses  d) More features\n` +
         `> *(just type a letter, or ignore)*`;
     }
