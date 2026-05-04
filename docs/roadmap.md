@@ -1,64 +1,136 @@
 # optym-code — Roadmap
 
-**Fecha:** 2026-05-02
+**Última actualización:** 2026-05-04
+**Visión:** El OpenRouter del CLI — routing inteligente para cualquier AI CLI y cualquier proveedor.
 
-## Fase 0: Validación (AHORA → 5 días)
+---
 
-- [ ] Usar optym-code diario 3-5 días
-- [ ] Medir: ¿Opus quota dura más? ¿Sonnet se usa? ¿Calidad OK?
-- [ ] Señales OK: Opus <50% uso diario, Sonnet sube de 3% a 30%+, sin pérdida calidad
-- [ ] Señales KO: Sonnet no escala a Opus cuando toca, respuestas peores
-- [ ] Recoger datos reales de `optym-code stats` y telemetría
-- [ ] Ajustar classifier si hay falsos negativos/positivos
+## Estado actual (2026-05-04)
 
-## Fase 1: Pulir + Publicar (Semana 2)
+- ✅ Proxy local funcional (localhost:8088)
+- ✅ Routing estático Claude Code (Haiku/Sonnet/Opus)
+- ✅ Terse mode (lite/full/ultra)
+- ✅ Telemetría anónima en producción
+- ✅ 1 usuario Pro activo (92% savings, 207 requests)
+- ✅ 2 usuarios free activos (Linux + Windows)
+- ✅ 4 emails en waitlist (incluyendo 1 en Codex)
+- ✅ Landing en optym.pro/#code
 
-- [ ] Actualizar landing optym.pro/#code con datos reales
-- [ ] Publicar npm: `npm install -g optym-code`
-- [ ] Primer post en redes: "Save 80% of your Opus quota"
-- [ ] Publicar en Reddit (r/ClaudeAI, r/programming)
-- [ ] Publicar en HackerNews
-- [ ] Publicar en Twitter/X dev community
+---
 
-## Fase 2: Gemini CLI + Codex (Semana 3-4)
+## Fase 1 — Beta cerrado (ahora → 2 semanas)
 
-- [ ] Adaptar hooks para Gemini CLI (mismo patrón, model IDs diferentes)
-- [ ] Adaptar proxy para Codex CLI (OpenAI API format)
+**Goal:** 10 usuarios activos, datos reales de 1000+ requests.
+
+- [ ] Enviar invitación a los 3 waitlist externos
+- [ ] Actualizar copy landing (framing quota, no coste API)
+- [ ] Fix bug `days_active: 20576` en telemetría
+- [ ] Recoger feedback de usuarios Windows (satisfaction baja)
+- [ ] Pulir classifier con datos reales de telemetría
+- [ ] Documentar soporte multi-plataforma (win32 ya hay usuarios)
+
+---
+
+## Fase 2 — Beta abierto + npm público (semana 3-4)
+
+**Goal:** 100 installs, primeras métricas públicas.
+
+- [ ] Publicar en npm: `npm install -g optym-code`
+- [ ] Post Reddit (r/ClaudeAI, r/programming, r/SideProject)
+- [ ] HackerNews Show HN
+- [ ] Datos reales en landing (% savings, installs, tier distribution)
+
+---
+
+## Fase 3 — Multi-CLI (mes 2)
+
+**Goal:** Funcionar en los 3 CLIs principales de AI.
+
+- [ ] **Codex CLI** — formato OpenAI-compatible, ya hay 1 waitlist
+- [ ] **Gemini CLI** — mismo patrón proxy, model IDs distintos
+- [ ] **Aider** — OpenAI-compatible, plug-and-play
 - [ ] README multi-plataforma
-- [ ] Tests en ambas plataformas
-- [ ] Publicar como plugin en ecosistemas respectivos
+- [ ] Tests cross-platform (Linux, macOS, Windows)
 
-## Fase 3: Pro + Monetización (Mes 2)
+---
 
-- [ ] Onboarding flow: registro → pago → key → activar Pro
-- [ ] Landing page checkout integrado con Stripe
-- [ ] Email onboarding sequence (3 emails)
-- [ ] Afinar ML classifier con datos reales de telemetría
-- [ ] Dashboard Pro en optym.pro (histórico, analytics)
+## Fase 4 — Monetización Pro (mes 2-3)
 
-## Fase 4: Escalar (Mes 3+)
+**Goal:** Primeros $500 MRR.
 
-- [ ] Cursor/Windsurf extensions
-- [ ] Continue.dev plugin
-- [ ] VS Code extension standalone (no solo Claude Code)
+- [ ] Onboarding: registro → Stripe → OPTYM_PRO_KEY → activar
+- [ ] Dashboard Pro en optym.pro (histórico, analytics por sesión)
+- [ ] ML classifier con datos reales de telemetría
+- [ ] Email sequence onboarding (3 emails)
+- [ ] Pricing: $9/mes · $90/año
+
+---
+
+## Fase 5 — OpenRouter del CLI (mes 3-6)
+
+**Goal:** Routing de modelo Y proveedor. Cualquier CLI, cualquier LLM.
+
+```
+CLI request → optym-code proxy
+  → classify complexity
+  → select model (Haiku/Sonnet/Opus/GPT-4o-mini/Gemini-Flash...)
+  → select provider (Anthropic/OpenAI/DeepSeek/Mistral...)
+  → cheapest option that meets SLA
+```
+
+- [ ] Soporte multi-proveedor (OpenAI, DeepSeek, Mistral)
+- [ ] Arbitrage real-time (mismo engine que optym-api)
+- [ ] Cursor/Windsurf/Continue.dev
+- [ ] BYOK — el usuario trae sus propias keys de cada proveedor
 - [ ] Team plan ($29/mes) — dashboard compartido
-- [ ] Enterprise — self-hosted classify endpoint
-- [ ] Blog: "How we save devs $X/month on AI coding"
 
-## Métricas clave
+---
 
-| Métrica | Target Fase 0 | Target Fase 1 | Target Fase 3 |
-|---|---|---|---|
-| Installs | 1 (nosotros) | 100 | 1000 |
-| Avg savings % | >50% | >60% | >70% |
-| Pro conversions | 0 | 5 | 50 |
-| MRR | $0 | $45 | $450 |
-| GitHub stars | 0 | 50 | 500 |
-| Plataformas | 1 (Claude) | 3 (Gemini, Codex) | 5+ |
+## Fase 6 — Modelos locales (mes 6+)
+
+**Goal:** $0 para requests simples. Mezcla cloud + local transparente.
+
+```
+"fix typo" → Ollama local (phi-3, $0.000)
+"explain this" → Sonnet ($0.003)
+"design arch" → Opus ($0.052)
+```
+
+- [ ] Soporte Ollama (localhost:11434)
+- [ ] Soporte LM Studio
+- [ ] Router consciente de hardware local disponible
+- [ ] Modo "max-local": escalar a cloud solo si local falla calidad
+
+---
+
+## Métricas objetivo
+
+| Métrica | Ahora | Fase 2 | Fase 4 | Fase 5 |
+|---|---|---|---|---|
+| Installs activos | ~4 | 100 | 500 | 2000 |
+| Avg savings % | 92% (Pro) | >70% | >75% | >80% |
+| Pro conversions | 1 | 10 | 50 | 200 |
+| MRR | $0 | $90 | $450 | $1800 |
+| GitHub stars | — | 100 | 500 | 2000 |
+| CLIs soportados | 1 | 1 | 3 | 6+ |
+| Proveedores | 1 | 1 | 2 | 5+ |
+
+---
+
+## Moat
+
+El valor acumulable que otros no pueden copiar fácilmente:
+
+1. **Historial de uso por proyecto** — el classifier mejora con cada request
+2. **Multi-CLI desde el día 1** — Anthropic nunca hará routing cross-provider
+3. **Datos de telemetría anónima** — ground truth real de qué necesita Opus vs Haiku
+4. **Comunidad early** — los primeros 100 usuarios son los evangelistas
+
+---
 
 ## Decisiones pendientes
 
-- ¿Free trial de Pro? (14 días vs 7 días)
-- ¿Pricing anual? ($9/mes vs $90/año → 2 meses gratis)
-- ¿Abrir telemetría dashboard público? (social proof)
-- ¿Programa de referidos? (1 mes gratis por referido)
+- ¿Free trial Pro? (7 días parece suficiente)
+- ¿Programa de referidos? (1 mes gratis por referido activo)
+- ¿Publicar dashboard de telemetría agregada? (social proof público)
+- ¿Pricing anual desde el inicio? ($90/año = 2 meses gratis)
