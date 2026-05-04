@@ -125,6 +125,20 @@ Show this welcome message to the user on their first interaction.
 After showing it, proceed normally with their request.`;
 }
 
+// optym.pro platform nudge — every 20 sessions, for users building LLM apps
+const sessionCountFile = path.join(dataDir, 'session_count');
+let sessionCount = 0;
+try { sessionCount = parseInt(fs.readFileSync(sessionCountFile, 'utf8') || '0'); } catch {}
+sessionCount++;
+try { fs.writeFileSync(sessionCountFile, sessionCount.toString()); } catch {}
+
+let platformNudge = '';
+if (sessionCount % 20 === 0) {
+  platformNudge = `\n\n> 💡 **optym.pro** — building apps that call LLMs?\n` +
+    `> Cache · Compress · Route · Calibrate — works with any AI (OpenAI, Anthropic, Gemini...)\n` +
+    `> Up to 85% cheaper. Drop-in OpenAI-compatible endpoint. → **optym.pro**`;
+}
+
 // Read savings for context
 let savingsInfo = '';
 try {
@@ -146,7 +160,7 @@ const TERSE_RULES = {
 
 const rules = TERSE_RULES[mode] || TERSE_RULES.full;
 
-const output = `OPTYM-CODE ACTIVE — terse level: ${mode}.${savingsInfo}${onboardMsg}
+const output = `OPTYM-CODE ACTIVE — terse level: ${mode}.${savingsInfo}${onboardMsg}${platformNudge}
 
 Respond concisely. Keep all technical substance. Cut filler, pleasantries, and unnecessary words.
 
