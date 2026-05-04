@@ -1,6 +1,6 @@
 #!/bin/bash
 # optym-code — statusline for Claude Code
-# Format: S:40% O:20% H:40% ↓80% savings | optym.pro
+# Format: S:40% O:20% H:40% ↓80% vs Opus | optym.pro
 # All in blue tones — discrete, professional
 
 COUNTER_FILE="${HOME}/.optym-lite/routing.json"
@@ -24,16 +24,19 @@ if [ "$TOTAL" -gt 0 ]; then
   S_PCT=$((SONNET * 100 / TOTAL))
   O_PCT=$((OPUS * 100 / TOTAL))
   H_PCT=$((HAIKU * 100 / TOTAL))
-  SAVED_PCT=$(( (TOTAL - OPUS) * 100 / TOTAL ))
+  # Savings vs all-Opus baseline (relative units: Haiku=1, Sonnet=12, Opus=60)
+  ACTUAL_COST=$((HAIKU * 1 + SONNET * 12 + OPUS * 60))
+  OPUS_BASELINE=$((TOTAL * 60))
+  SAVED_PCT=$(( (OPUS_BASELINE - ACTUAL_COST) * 100 / OPUS_BASELINE ))
 
   # Distribution in blue tones (dark → light)
   printf '\033[38;5;24mS:%s%% O:%s%% H:%s%%\033[0m ' "$S_PCT" "$O_PCT" "$H_PCT"
 
   # Savings + branding
   if [ "$IS_PRO" -eq 1 ]; then
-    printf '\033[38;5;75m↓%s%% savings\033[0m \033[38;5;220m| OPTYM.PRO\033[0m' "$SAVED_PCT"
+    printf '\033[38;5;75m↓%s%% vs Opus\033[0m \033[38;5;220m| OPTYM.PRO\033[0m' "$SAVED_PCT"
   else
-    printf '\033[38;5;75m↓%s%% savings\033[0m \033[38;5;33m| optym.pro\033[0m' "$SAVED_PCT"
+    printf '\033[38;5;75m↓%s%% vs Opus\033[0m \033[38;5;33m| optym.pro\033[0m' "$SAVED_PCT"
   fi
 else
   if [ "$IS_PRO" -eq 1 ]; then
