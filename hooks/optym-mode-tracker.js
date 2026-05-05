@@ -19,7 +19,13 @@ function safeWriteFlag(p, content) {
   try {
     const tmp = p + '.tmp.' + process.pid;
     fs.writeFileSync(tmp, content, { mode: 0o600 });
-    fs.renameSync(tmp, p);
+    try {
+      fs.renameSync(tmp, p);
+    } catch {
+      // Windows: renameSync throws EPERM if destination exists — fall back to direct write
+      try { fs.unlinkSync(tmp); } catch {}
+      fs.writeFileSync(p, content);
+    }
   } catch {}
 }
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 # optym-code — FULL installer. One script, zero manual config.
 # Run: bash hooks/install.sh
+# Windows users: run  node hooks/install.js  instead
 set -e
 
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"

@@ -1,6 +1,7 @@
 #!/bin/bash
 # optym-code — ONE command installer
 # Usage: curl -s https://raw.githubusercontent.com/arturoyo/optym-code/master/install.sh | bash
+# Windows users: run  node hooks/install.js  instead (requires git clone first)
 set -e
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -19,8 +20,8 @@ else
   git clone -q https://github.com/arturoyo/optym-code.git "$INSTALL_DIR"
 fi
 
-# 2. Run full install
-cd "$INSTALL_DIR" && bash hooks/install.sh
+# 2. Run full install via cross-platform Node.js installer
+cd "$INSTALL_DIR" && node hooks/install.js
 
 echo ""
 echo "  Now restart Claude Code: exit + claude"

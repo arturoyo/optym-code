@@ -66,7 +66,8 @@ program
     }
     const pid = parseInt(fs.readFileSync(pidFile, 'utf8'));
     try {
-      process.kill(pid, 'SIGINT');
+      // Windows does not support named signals via process.kill — use signal number 2 (SIGINT)
+      process.kill(pid, process.platform === 'win32' ? 2 : 'SIGINT');
       console.log('optym-lite stopped');
     } catch {
       console.log('optym-lite was not running (stale PID)');
