@@ -6,7 +6,7 @@ const { URL } = require('node:url');
 const { classify } = require('./classifier');
 const { compress } = require('./compressor');
 const { mapToModel } = require('./model-mapper');
-const { calculateCost, MODELS } = require('./pricing');
+const { calculateCost, MODELS, OPENAI_MODELS } = require('./pricing');
 const tracker = require('./savings-tracker');
 const { writeStats } = require('./stats-writer');
 const { load: loadConfig } = require('./config');
@@ -28,6 +28,20 @@ function extractUserContent(messages) {
       .join('\n');
   }
   return '';
+}
+
+function extractOpenAIContent(parsed, endpoint) {
+  if (endpoint === '/v1/responses') {
+    const input = parsed.input;
+    if (typeof input === 'string') return input;
+    if (Array.isArray(input)) {
+      const lastUser = [...input].reverse().find(m => m.role === 'user');
+      if (lastUser) return typeof lastUser.content === 'string' ? lastUser.content : '';
+    }
+    return '';
+  }
+  // /v1/chat/completions
+  return extractUserContent(parsed.messages);
 }
 
 function _simpleHash(str) {
@@ -128,12 +142,18 @@ function startProxy(options = {}) {
       return;
     }
 
-    // Only intercept POST /v1/messages
+    // Detect protocol by URL
     const isMessagesEndpoint = req.method === 'POST' && req.url === '/v1/messages';
+    const isOpenAIEndpoint = req.method === 'POST' && (req.url === '/v1/chat/completions' || req.url === '/v1/responses');
 
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', async () => {
+      if (isOpenAIEndpoint) {
+        handleOpenAI(req, res, body, req.url, upstream, config, sessionId);
+        return;
+      }
+
       if (!isMessagesEndpoint) {
         forwardRequest(req, res, body, upstream, null);
         return;
@@ -249,6 +269,58 @@ function startProxy(options = {}) {
   });
 }
 
+function handleOpenAI(req, res, body, endpoint, upstream, config, sessionId) {
+  let parsed;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Invalid JSON' }));
+    return;
+  }
+
+  const originalModel = parsed.model;
+  const userContent = extractOpenAIContent(parsed, endpoint);
+  const classification = classify(userContent);
+  const selectedModel = mapToModel(classification.score, 'openai');
+
+  // Rewrite model
+  parsed.model = selectedModel.id;
+  const newBody = JSON.stringify(parsed);
+
+  // Forward to OpenAI upstream with streaming support
+  forwardRequest(req, res, newBody, upstream, (responseBody) => {
+    try {
+      const respParsed = JSON.parse(responseBody);
+      const usage = respParsed.usage || {};
+      // OpenAI uses prompt_tokens/completion_tokens or input_tokens/output_tokens
+      const inputTokens = usage.input_tokens || usage.prompt_tokens || 0;
+      const outputTokens = usage.output_tokens || usage.completion_tokens || 0;
+
+      const costActual = calculateCost(selectedModel.id, inputTokens, outputTokens) || 0;
+      const costOriginal = calculateCost(originalModel, inputTokens, outputTokens) || costActual;
+
+      tracker.record({
+        sessionId,
+        originalModel,
+        routedModel: selectedModel.id,
+        inputTokens,
+        inputCompressed: inputTokens,
+        outputTokens,
+        costActual,
+        costOriginal,
+        classifierScore: classification.score,
+      });
+
+      const sessionStats = tracker.getSessionStats(sessionId);
+      const allTimeStats = tracker.getAllTimeStats();
+      writeStats(sessionStats, allTimeStats);
+    } catch {
+      // Don't crash proxy on tracking errors
+    }
+  });
+}
+
 function forwardRequest(clientReq, clientRes, body, upstream, onResponse) {
   const upstreamUrl = new URL(upstream);
   const isHttps = upstreamUrl.protocol === 'https:';
@@ -268,6 +340,21 @@ function forwardRequest(clientReq, clientRes, body, upstream, onResponse) {
   };
 
   const proxyReq = transport.request(options, (proxyRes) => {
+    // Streaming passthrough for SSE responses (OpenAI streaming)
+    if (proxyRes.headers['content-type']?.includes('text/event-stream')) {
+      clientRes.writeHead(proxyRes.statusCode, proxyRes.headers);
+      let fullBody = '';
+      proxyRes.on('data', chunk => {
+        clientRes.write(chunk);
+        fullBody += chunk;
+      });
+      proxyRes.on('end', () => {
+        clientRes.end();
+        if (onResponse) onResponse(fullBody);
+      });
+      return;
+    }
+
     let responseBody = '';
     proxyRes.on('data', chunk => { responseBody += chunk; });
     proxyRes.on('end', () => {

@@ -14,21 +14,48 @@ describe('proxy', () => {
     fs.mkdirSync(testDir, { recursive: true });
     process.env.OPTYM_LITE_DIR = testDir;
 
-    // Mock upstream that echoes back what it received
+    // Mock upstream that echoes back what it received (multi-protocol)
     mockUpstream = http.createServer((req, res) => {
       let body = '';
       req.on('data', chunk => { body += chunk; });
       req.on('end', () => {
         const parsed = JSON.parse(body);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          id: 'msg_test',
-          type: 'message',
-          role: 'assistant',
-          content: [{ type: 'text', text: 'Hello!' }],
-          model: parsed.model,
-          usage: { input_tokens: 100, output_tokens: 50 },
-        }));
+        if (req.url === '/v1/chat/completions' && parsed.stream) {
+          // SSE streaming mock
+          res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
+          res.write('data: {"id":"chatcmpl-1","object":"chat.completion.chunk","model":"' + parsed.model + '","choices":[{"delta":{"content":"Hi"},"index":0}]}\n\n');
+          res.write('data: {"id":"chatcmpl-1","object":"chat.completion.chunk","model":"' + parsed.model + '","choices":[{"delta":{},"index":0,"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n');
+          res.write('data: [DONE]\n\n');
+          res.end();
+        } else if (req.url === '/v1/chat/completions') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            id: 'chatcmpl-test',
+            object: 'chat.completion',
+            model: parsed.model,
+            choices: [{ index: 0, message: { role: 'assistant', content: 'Hello!' }, finish_reason: 'stop' }],
+            usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
+          }));
+        } else if (req.url === '/v1/responses') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            id: 'resp-test',
+            object: 'response',
+            model: parsed.model,
+            output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'Hello!' }] }],
+            usage: { input_tokens: 100, output_tokens: 50, total_tokens: 150 },
+          }));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            id: 'msg_test',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello!' }],
+            model: parsed.model,
+            usage: { input_tokens: 100, output_tokens: 50 },
+          }));
+        }
       });
     });
 
@@ -139,6 +166,103 @@ describe('proxy', () => {
       req.end();
     });
     assert.strictEqual(res.body.model, 'claude-opus-4-6');
+  });
+
+  function makeOpenAIRequest(body, endpoint = '/v1/chat/completions') {
+    return new Promise((resolve, reject) => {
+      const data = JSON.stringify(body);
+      const req = http.request({
+        hostname: 'localhost',
+        port: proxyPort,
+        path: endpoint,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-key',
+          'Content-Length': Buffer.byteLength(data),
+        },
+      }, (res) => {
+        let body = '';
+        res.on('data', chunk => { body += chunk; });
+        res.on('end', () => {
+          resolve({ status: res.statusCode, body: JSON.parse(body) });
+        });
+      });
+      req.on('error', reject);
+      req.write(data);
+      req.end();
+    });
+  }
+
+  it('handles OpenAI Chat Completions endpoint with model rewrite', async () => {
+    const res = await makeOpenAIRequest({
+      model: 'o3',
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+    assert.strictEqual(res.status, 200);
+    // "hello" -> cheap -> gpt-4.1-mini
+    assert.strictEqual(res.body.model, 'gpt-4.1-mini');
+  });
+
+  it('routes complex OpenAI Chat Completions to o3', async () => {
+    const res = await makeOpenAIRequest({
+      model: 'o3',
+      messages: [{ role: 'user', content: 'design a microservices architecture for payment processing with authentication and rate limiting' }],
+    });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.model, 'o3');
+  });
+
+  it('handles OpenAI Responses API endpoint with model rewrite', async () => {
+    const res = await makeOpenAIRequest({
+      model: 'o3',
+      input: 'hello',
+    }, '/v1/responses');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.model, 'gpt-4.1-mini');
+  });
+
+  it('handles OpenAI Responses API with array input', async () => {
+    const res = await makeOpenAIRequest({
+      model: 'o3',
+      input: [{ role: 'user', content: 'design a distributed system architecture for real-time data processing' }],
+    }, '/v1/responses');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.model, 'o3');
+  });
+
+  it('streams SSE responses without buffering for OpenAI', async () => {
+    const chunks = [];
+    await new Promise((resolve, reject) => {
+      const data = JSON.stringify({
+        model: 'o3',
+        messages: [{ role: 'user', content: 'hello' }],
+        stream: true,
+      });
+      const req = http.request({
+        hostname: 'localhost',
+        port: proxyPort,
+        path: '/v1/chat/completions',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-key',
+          'Content-Length': Buffer.byteLength(data),
+        },
+      }, (res) => {
+        assert.strictEqual(res.headers['content-type'], 'text/event-stream');
+        res.on('data', chunk => { chunks.push(chunk.toString()); });
+        res.on('end', resolve);
+      });
+      req.on('error', reject);
+      req.write(data);
+      req.end();
+    });
+    const full = chunks.join('');
+    assert.ok(full.includes('data: '));
+    assert.ok(full.includes('[DONE]'));
+    // Model was rewritten to gpt-4.1-mini (simple "hello")
+    assert.ok(full.includes('gpt-4.1-mini'));
   });
 
   it('responds to health endpoint', async () => {
