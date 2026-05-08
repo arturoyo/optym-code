@@ -138,6 +138,7 @@ function startProxy(options = {}) {
         service: 'optym-lite',
         mode: config.proMode ? 'pro' : 'free',
         session: sessionId,
+        providers: ['anthropic', 'openai'],
       }));
       return;
     }
