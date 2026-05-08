@@ -40,6 +40,9 @@ const MODEL_TO_TIER_NAME = {
   'claude-haiku-4-5-20251001': 'haiku',
   'claude-sonnet-4-6': 'sonnet',
   'claude-opus-4-6': 'opus',
+  'gpt-4.1-mini': 'gpt-4.1-mini',
+  'gpt-4.1': 'gpt-4.1',
+  'o3': 'o3',
 };
 
 function record(data) {
@@ -78,7 +81,7 @@ function getSessionStats(sessionId) {
     GROUP BY routed_model
   `).all(sessionId);
 
-  const tierDistribution = { haiku: 0, sonnet: 0, opus: 0 };
+  const tierDistribution = { haiku: 0, sonnet: 0, opus: 0, 'gpt-4.1-mini': 0, 'gpt-4.1': 0, 'o3': 0 };
   for (const t of tiers) {
     const name = MODEL_TO_TIER_NAME[t.routed_model] || 'unknown';
     tierDistribution[name] = t.cnt;
