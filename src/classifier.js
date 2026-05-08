@@ -17,10 +17,13 @@ const OPUS_PATTERNS = [
   { pattern: /\b(write a|create a|build a|implement|genera|crea|construye)\b/i, signal: 'generation' },
   { pattern: /\b(explain|compare|analyze|evalua|analiz).*\b(detail|depth|thorough|comprehensive)/i, signal: 'deep_analysis' },
   { pattern: /\b(migrate|migration|convert|transform)\b.*\b(from|to|into)\b/i, signal: 'migration' },
+  { pattern: /```[\s\S]{50,}```/, signal: 'code_in_prompt' },
+  { pattern: /\b(fix|solve|resolve)\b[\s\S]{20,}/, signal: 'non_trivial_fix' },
+  { pattern: /\b(complete|finish|finalize)\b[\s\S]{15,}/i, signal: 'completion_task' },
 ];
 
 const SHORT_THRESHOLD = 200;
-const LONG_THRESHOLD = 2000;
+const LONG_THRESHOLD = 1000;
 
 function classify(prompt) {
   const text = (prompt || '').trim();

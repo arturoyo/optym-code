@@ -13,6 +13,7 @@ describe('integration: full request cycle', () => {
   before(async () => {
     fs.mkdirSync(testDir, { recursive: true });
     process.env.OPTYM_LITE_DIR = testDir;
+    delete process.env.OPTYM_PRO_KEY; // force free/local mode regardless of environment
 
     // Clear all cached modules
     for (const key of Object.keys(require.cache)) {

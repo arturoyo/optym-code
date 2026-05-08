@@ -55,9 +55,27 @@ describe('classifier', () => {
     });
 
     it('classifies long prompts as complex', () => {
-      const longPrompt = 'explain this code in detail: ' + 'x'.repeat(2100);
+      const longPrompt = 'explain this code in detail: ' + 'x'.repeat(1100);
       const result = classify(longPrompt);
       assert.ok(result.score > 0.6);
+    });
+
+    it('classifies prompts with code blocks as complex', () => {
+      const result = classify('what is wrong with this?\n```\nfunction auth(token) {\n  if (!token) return false;\n  return verify(token);\n}\n```');
+      assert.ok(result.score > 0.6, `score ${result.score} should be > 0.6`);
+      assert.ok(result.signals.includes('code_in_prompt'));
+    });
+
+    it('classifies non-trivial fix tasks as opus', () => {
+      const result = classify('fix the authentication middleware so JWT tokens are validated correctly');
+      assert.ok(result.score > 0.6, `score ${result.score} should be > 0.6`);
+      assert.ok(result.signals.includes('non_trivial_fix'));
+    });
+
+    it('classifies completion tasks as opus', () => {
+      const result = classify('complete the implementation of the payment module');
+      assert.ok(result.score > 0.6, `score ${result.score} should be > 0.6`);
+      assert.ok(result.signals.includes('completion_task'));
     });
   });
 
