@@ -1,32 +1,30 @@
 # optym-code
 
-**Stretch your Claude Code quota 80%.** Smart model routing saves Opus for what matters.
+**Stop burning expensive AI quota on cheap tasks.** Smart model routing for Claude Code and Codex CLI.
 
 ## The Problem
 
-Claude Code Max/Pro has separate quotas per model. Most users burn through Opus on simple tasks ("read this file", "git status") while Sonnet quota sits unused.
-
-**optym-code fixes this:** runs Sonnet by default, escalates to Opus only for complex tasks.
+Claude Code and Codex charge per request — or burn through quota fast. Most tasks don't need your most expensive model.
 
 ```
 Without optym-code:
-  "hello"              → Opus  (quota wasted)
-  "read package.json"  → Opus  (quota wasted)
-  "add try-catch"      → Opus  (quota wasted)
-  "design architecture"→ Opus  ← only this needs Opus
-  Result: Opus quota burned in 2 hours
+  "hello"               → Opus / o3    (expensive, wasted)
+  "read this file"      → Opus / o3    (expensive, wasted)
+  "add try-catch"       → Opus / o3    (expensive, wasted)
+  "design architecture" → Opus / o3    (actually needed)
+  Result: quota gone in 2 hours
 
 With optym-code:
-  "hello"              → Sonnet (Opus saved)
-  "read package.json"  → Sonnet (Opus saved)
-  "add try-catch"      → Sonnet (Opus saved)
-  "design architecture"→ Opus   ← escalated automatically
-  Result: Opus quota lasts all day
+  "hello"               → Haiku / gpt-4.1-mini  (20x cheaper)
+  "read this file"      → Haiku / gpt-4.1-mini  (20x cheaper)
+  "add try-catch"       → Sonnet / gpt-4.1      (5x cheaper)
+  "design architecture" → Opus / o3             (escalated)
+  Result: same work, 30-55% less cost
 ```
 
-## Install
+Works as a local proxy — invisible to your CLI. No config beyond install, no data leaves your machine.
 
-### One command (recommended)
+## Install
 
 ```bash
 curl -s https://raw.githubusercontent.com/arturoyo/optym-code/master/install.sh | bash
@@ -34,132 +32,86 @@ curl -s https://raw.githubusercontent.com/arturoyo/optym-code/master/install.sh 
 
 Restart Claude Code. Done.
 
-### Manual install
-
-#### Step 1: Register plugin (inside Claude Code)
-
-```
-/plugin marketplace add arturoyo/optym-code
-/plugin install optym-code@optym-code
-/reload-plugins
-```
-
-### Step 2: Complete setup (terminal, outside Claude Code)
+## Codex CLI Support
 
 ```bash
-cd ~/.claude/plugins/marketplaces/optym-code && bash hooks/install.sh
+optym-code setup codex
+optym-code start
 ```
 
-This single script does everything:
-- Configures statusline (`S:80% O:10% H:10% ↓90% savings | optym.pro`)
-- Wires hooks (terse mode + smart routing)
-- Sets Sonnet as default model (alias in bashrc/zshrc)
-- Creates data directory for tracking
-
-### Step 3: Restart Claude Code
-
-```bash
-claude
-```
-
-Done. Zero manual config.
-
-### Already installed? Update:
-
-```bash
-cd ~/.claude/plugins/marketplaces/optym-code && git pull && bash hooks/install.sh
-```
-
-Also works with API keys (Aider, Cursor, SDKs) via local proxy — see [API Key Setup](#api-key-setup).
-
-## What You Get
-
-| Feature | What it does |
-|---------|-------------|
-| **Smart routing** | Sonnet default, Opus only for complex tasks |
-| **Terse mode** | Concise responses — less token waste |
-| **Live statusline** | `S:80% O:10% H:10% ↓90% savings | optym.pro` |
-| **Savings tracking** | Real numbers, not inflated |
-| **Onboarding** | Welcome message on first use |
-| **Upgrade path** | `/optym-code:upgrade` for Pro |
-
-## Statusline
-
-```
-S:80% O:10% H:10% ↓90% savings | optym.pro
-```
-
-- **S/O/H** — % requests per model (Sonnet/Opus/Haiku)
-- **↓90% savings** — % requests that didn't need Opus
-- **optym.pro** — brand (golden `OPTYM.PRO` for paid users)
-
-## Commands
-
-| Command | What |
-|---------|------|
-| `/optym-code:optym` | Activate terse mode (lite/full/ultra) |
-| `/optym-code:savings` | Show savings dashboard |
-| `/optym-code:upgrade` | Pro upgrade info ($9/mo) |
-| `/optym-code:force-opus` | Force Opus for all requests |
-| `/optym-code:force-haiku` | Force Haiku for all requests |
-| `/optym-code:force-sonnet` | Force Sonnet for all requests |
-| `/optym-code:optym-reset` | Return to auto-routing |
-| `stop optym` | Deactivate terse mode |
+Writes `~/.codex/config.toml` pointing Codex at the proxy. Requires `OPENAI_API_KEY` set in your environment.
 
 ## How It Works
 
-1. Plugin sets `--model sonnet` as default
-2. Each prompt classified by complexity (regex rules)
-3. Simple/medium tasks → Sonnet handles directly
-4. Complex tasks → escalated to Opus via subagent
-5. Terse mode injects concise response instructions
-6. All routing tracked in statusline
+A local proxy runs on `localhost:8088`. Your CLI sends requests through it.
 
-**Your auth stays untouched.** No proxy, no API interception. Just smarter model selection.
+1. Classifies prompt complexity (local regex rules — instant, free, no data sent)
+2. Routes to cheapest model that can handle the task:
+   - **Haiku / gpt-4.1-mini** — greetings, file reads, git ops, simple questions
+   - **Sonnet / gpt-4.1** — moderate tasks, default for ambiguous prompts
+   - **Opus / o3** — architecture, complex debug, multi-file refactors, code with context
+3. Forwards directly to Anthropic or OpenAI (your keys, your auth)
+4. Tracks savings in local SQLite
+
+**Pro mode** upgrades classification to ML (92% accuracy, 45-55% savings) via `api.optym.pro`. Your LLM traffic never goes through optym servers — only the classification request does.
 
 ## Compatibility
 
-| Client | Works? | How |
-|--------|--------|-----|
-| Claude Code CLI | Yes | Plugin |
-| Claude Code VS Code | Yes | Plugin |
-| Claude Code JetBrains | Yes | Plugin |
-| Claude Code Desktop | Yes | Plugin |
-| Claude Code Remote (SSH) | Yes | Plugin |
-| Aider, Cursor, SDKs | Yes | Local proxy |
+| CLI | Supported | Setup |
+|-----|-----------|-------|
+| Claude Code (subscription) | Yes | `install.sh` |
+| Claude Code (API key) | Yes | `install.sh` + set `ANTHROPIC_BASE_URL` |
+| Codex CLI | Yes | `optym-code setup codex` |
+| Aider, Cursor, any Anthropic client | Yes | Set `ANTHROPIC_BASE_URL=http://localhost:8088` |
 
-## API Key Setup
+## Savings
 
-For API key users (not subscription), optym-code also includes a local proxy:
+Real numbers from production usage:
+
+| Mode | Routing accuracy | Typical savings |
+|------|-----------------|-----------------|
+| Free (local rules) | ~70% | 20-35% |
+| Pro (ML cloud) | 92% | 45-55% |
+
+## Commands (Claude Code)
+
+| Command | What |
+|---------|------|
+| `/optym` | Activate terse mode (cuts output tokens ~65%) |
+| `/savings` | Show savings dashboard |
+| `/force-opus` | Force Opus for all requests |
+| `/force-haiku` | Force Haiku for all requests |
+| `/force-sonnet` | Force Sonnet for all requests |
+| `/optym-reset` | Return to auto-routing |
+| `stop optym` | Deactivate terse mode |
+
+## Manual proxy control
 
 ```bash
-npm install -g optym-code
-optym-code start
-export ANTHROPIC_BASE_URL=http://localhost:8088
+optym-code start          # start proxy (auto-started on Claude Code session)
+optym-code stop           # stop proxy
+optym-code status         # show proxy status and savings
+optym-code setup codex    # configure Codex CLI
 ```
-
-The proxy classifies prompts and routes to Haiku/Sonnet/Opus. Works with any Anthropic API client.
-
-**Do NOT set ANTHROPIC_BASE_URL with Claude Code subscription** — it breaks OAuth auth.
 
 ## Optym Pro
 
-Free tier uses static regex rules (~70% routing accuracy).
+Free tier: static regex rules, 100% local, 20-35% savings.
 
-**[Optym Pro](https://optym.pro)** upgrades to ML classification (92% accuracy). $9/month:
+**[Optym Pro](https://optym.pro)** — ML classification, 92% accuracy, 45-55% savings. $9/month.
 
 ```bash
 export OPTYM_PRO_KEY=optym_your_key
 ```
 
-Statusline changes to golden `OPTYM.PRO`. Your LLM traffic stays direct to Anthropic — only prompt classification goes to optym.pro.
+Your LLM traffic stays direct to Anthropic/OpenAI. Only prompt text is sent to classify.
 
 ## Privacy
 
-- No prompts stored or transmitted (free mode is 100% local)
-- Pro mode sends only prompt text to classify endpoint (not stored)
-- Anonymous daily telemetry: install count, model distribution, savings %
-- Opt-out: add `{"telemetry": false}` to `~/.optym-lite/config.json`
+- **Free mode**: 100% local. Nothing leaves your machine.
+- **Pro mode**: prompt text sent to `api.optym.pro/v1/classify` for ML routing. Not stored.
+- **Telemetry**: anonymous daily ping — install count, model distribution, savings %. No prompts.
+- **Opt-out**: `{"telemetry": false}` in `~/.optym-lite/config.json`
 
 ## License
 
