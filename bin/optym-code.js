@@ -150,6 +150,31 @@ program
     }
   });
 
+const setup = program.command('setup').description('Setup integrations');
+
+setup.command('codex')
+  .description('Configure Codex CLI to use optym-code proxy')
+  .action(() => {
+    const os = require('node:os');
+    const configDir = path.join(os.homedir(), '.codex');
+    if (!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true });
+    const tomlPath = path.join(configDir, 'config.toml');
+    const content = [
+      'model = "o3"',
+      '',
+      '[model_providers.optym]',
+      'name = "Optym Router"',
+      'base_url = "http://localhost:8088"',
+      'env_key = "OPENAI_API_KEY"',
+      'wire_api = "responses"',
+      '',
+    ].join('\n');
+    fs.writeFileSync(tomlPath, content);
+    console.log(`Codex CLI configured at ${tomlPath}`);
+    console.log('Make sure OPENAI_API_KEY is set in your environment.');
+    console.log('Start proxy: optym-code start');
+  });
+
 program
   .command('upgrade')
   .description('Open Optym Pro upgrade page')
