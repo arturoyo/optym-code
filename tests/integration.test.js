@@ -20,21 +20,41 @@ describe('integration: full request cycle', () => {
       if (key.includes('optym-lite/src')) delete require.cache[key];
     }
 
-    // Mock Anthropic upstream
+    // Mock multi-protocol upstream
     mockUpstream = http.createServer((req, res) => {
       let body = '';
       req.on('data', chunk => { body += chunk; });
       req.on('end', () => {
         const parsed = JSON.parse(body);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          id: 'msg_test',
-          type: 'message',
-          role: 'assistant',
-          content: [{ type: 'text', text: 'Response' }],
-          model: parsed.model,
-          usage: { input_tokens: 500, output_tokens: 200 },
-        }));
+        if (req.url === '/v1/chat/completions') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            id: 'chatcmpl-test',
+            object: 'chat.completion',
+            model: parsed.model,
+            choices: [{ index: 0, message: { role: 'assistant', content: 'Response' }, finish_reason: 'stop' }],
+            usage: { prompt_tokens: 500, completion_tokens: 200, total_tokens: 700 },
+          }));
+        } else if (req.url === '/v1/responses') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            id: 'resp-test',
+            object: 'response',
+            model: parsed.model,
+            output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'Response' }] }],
+            usage: { input_tokens: 500, output_tokens: 200, total_tokens: 700 },
+          }));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            id: 'msg_test',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Response' }],
+            model: parsed.model,
+            usage: { input_tokens: 500, output_tokens: 200 },
+          }));
+        }
       });
     });
 
@@ -86,6 +106,31 @@ describe('integration: full request cycle', () => {
     });
   }
 
+  function postOpenAI(content, endpoint = '/v1/chat/completions') {
+    return new Promise((resolve, reject) => {
+      const body = endpoint === '/v1/responses'
+        ? { model: 'o3', input: content }
+        : { model: 'o3', messages: [{ role: 'user', content }] };
+      const data = JSON.stringify(body);
+      const req = http.request({
+        hostname: 'localhost', port: proxyPort,
+        path: endpoint, method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-key',
+          'Content-Length': Buffer.byteLength(data),
+        },
+      }, (res) => {
+        let body = '';
+        res.on('data', chunk => { body += chunk; });
+        res.on('end', () => resolve(JSON.parse(body)));
+      });
+      req.on('error', reject);
+      req.write(data);
+      req.end();
+    });
+  }
+
   it('routes simple prompt to haiku, complex to opus, medium to sonnet', async () => {
     const r1 = await post('hello');
     assert.strictEqual(r1.model, 'claude-haiku-4-5-20251001');
@@ -109,5 +154,21 @@ describe('integration: full request cycle', () => {
   it('savings DB has records', () => {
     const dbPath = path.join(testDir, 'savings.db');
     assert.ok(fs.existsSync(dbPath));
+  });
+
+  it('routes OpenAI Chat Completions: simple to gpt-4.1-mini, complex to o3', async () => {
+    const r1 = await postOpenAI('hello');
+    assert.strictEqual(r1.model, 'gpt-4.1-mini');
+
+    const r2 = await postOpenAI('design a distributed system architecture for real-time data processing');
+    assert.strictEqual(r2.model, 'o3');
+  });
+
+  it('routes OpenAI Responses API: simple to gpt-4.1-mini, complex to o3', async () => {
+    const r1 = await postOpenAI('hello', '/v1/responses');
+    assert.strictEqual(r1.model, 'gpt-4.1-mini');
+
+    const r2 = await postOpenAI('design a distributed system architecture for real-time data processing', '/v1/responses');
+    assert.strictEqual(r2.model, 'o3');
   });
 });
