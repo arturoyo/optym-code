@@ -1,7 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const { mapToModel, setOverride, clearOverride, getOverride } = require('../src/model-mapper');
-const { MODELS } = require('../src/pricing');
+const { MODELS, OPENAI_MODELS } = require('../src/pricing');
 
 describe('model-mapper', () => {
   it('maps low score to haiku', () => {
@@ -54,6 +54,35 @@ describe('model-mapper', () => {
       assert.strictEqual(getOverride(), 'mid');
       clearOverride();
       assert.strictEqual(getOverride(), null);
+    });
+  });
+
+  describe('openai provider', () => {
+    it('maps low score to gpt-4.1-mini', () => {
+      const model = mapToModel(0.1, 'openai');
+      assert.strictEqual(model.id, 'gpt-4.1-mini');
+    });
+
+    it('maps mid score to gpt-4.1', () => {
+      const model = mapToModel(0.5, 'openai');
+      assert.strictEqual(model.id, 'gpt-4.1');
+    });
+
+    it('maps high score to o3', () => {
+      const model = mapToModel(0.8, 'openai');
+      assert.strictEqual(model.id, 'o3');
+    });
+
+    it('defaults to anthropic when no provider given', () => {
+      const model = mapToModel(0.1);
+      assert.strictEqual(model.id, 'claude-haiku-4-5-20251001');
+    });
+
+    it('override works with openai provider', () => {
+      setOverride('cheap');
+      const model = mapToModel(0.9, 'openai');
+      assert.strictEqual(model.id, 'gpt-4.1-mini');
+      clearOverride();
     });
   });
 });
