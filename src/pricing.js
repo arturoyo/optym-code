@@ -24,8 +24,35 @@ const MODELS = {
   },
 };
 
+const OPENAI_MODELS = {
+  cheap: {
+    id: 'gpt-4.1-mini',
+    tier: 'cheap',
+    inputPer1M: 0.40,
+    outputPer1M: 1.60,
+    maxOutputTokens: 32768,
+  },
+  mid: {
+    id: 'gpt-4.1',
+    tier: 'mid',
+    inputPer1M: 2.00,
+    outputPer1M: 8.00,
+    maxOutputTokens: 32768,
+  },
+  premium: {
+    id: 'o3',
+    tier: 'premium',
+    inputPer1M: 10.00,
+    outputPer1M: 40.00,
+    maxOutputTokens: 100000,
+  },
+};
+
 const PRICING_BY_MODEL_ID = {};
 for (const tier of Object.values(MODELS)) {
+  PRICING_BY_MODEL_ID[tier.id] = tier;
+}
+for (const tier of Object.values(OPENAI_MODELS)) {
   PRICING_BY_MODEL_ID[tier.id] = tier;
 }
 
@@ -41,4 +68,4 @@ function calculateCost(modelId, inputTokens, outputTokens) {
   return parseFloat((inputCost + outputCost).toFixed(6));
 }
 
-module.exports = { MODELS, getModelPricing, calculateCost, PRICING_BY_MODEL_ID };
+module.exports = { MODELS, OPENAI_MODELS, getModelPricing, calculateCost, PRICING_BY_MODEL_ID };
